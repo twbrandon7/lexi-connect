@@ -6,7 +6,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useUser, useFirestore, addDocumentNonBlocking } from '@/firebase';
-import { collection } from 'firebase/firestore';
+import { collection, doc, setDoc } from 'firebase/firestore';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -66,7 +66,7 @@ export function CreateSessionDialog({ open, onOpenChange }: CreateSessionDialogP
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    if (!user) {
+    if (!user || !firestore) {
       toast({
         variant: 'destructive',
         title: 'Error',
@@ -76,7 +76,11 @@ export function CreateSessionDialog({ open, onOpenChange }: CreateSessionDialogP
     }
     setIsSubmitting(true);
     try {
-      const newSession: Omit<Session, 'id'> = {
+      const sessionsCollection = collection(firestore, 'sessions');
+      const newSessionRef = doc(sessionsCollection); // Create a reference with a new ID
+
+      const newSession: Session = {
+        id: newSessionRef.id,
         name: values.name,
         motherLanguage: values.motherLanguage,
         visibility: values.visibility,
@@ -85,8 +89,14 @@ export function CreateSessionDialog({ open, onOpenChange }: CreateSessionDialogP
         participantCount: 1,
       };
 
-      const sessionsCollection = collection(firestore, 'sessions');
-      const newSessionDoc = await addDocumentNonBlocking(sessionsCollection, newSession);
+      // Use the reference to set the document
+      await setDoc(newSessionRef, newSession);
+      
+      // If public, also create a denormalized entry in public_sessions
+      if (values.visibility === 'public') {
+        const publicSessionRef = doc(firestore, 'public_sessions', newSession.id);
+        await setDoc(publicSessionRef, newSession);
+      }
 
 
       toast({
@@ -95,7 +105,7 @@ export function CreateSessionDialog({ open, onOpenChange }: CreateSessionDialogP
       });
 
       onOpenChange(false);
-      router.push(`/sessions/${newSessionDoc.id}`);
+      router.push(`/sessions/${newSession.id}`);
     } catch (error) {
       console.error('Failed to create session:', error);
       toast({
