@@ -1,16 +1,39 @@
 'use client';
 
 import { collection, query, where, orderBy } from 'firebase/firestore';
-import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
+import { useCollection, useFirestore, useMemoFirebase, useUser } from '@/firebase';
 import type { Session } from '@/lib/types';
 import { PublicSessionsList } from './PublicSessionsList';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Button } from '../ui/button';
+import { initiateGoogleSignIn, useAuth } from '@/firebase';
+
+function SignInPrompt() {
+  const auth = useAuth();
+  
+  const handleSignIn = () => {
+    initiateGoogleSignIn(auth);
+  };
+  
+  return (
+    <div className="text-center py-16 border-2 border-dashed rounded-lg">
+      <h3 className="text-xl font-semibold">Sign In to View Public Sessions</h3>
+      <p className="text-muted-foreground mt-2 mb-4">
+        Please sign in with your Google account to browse and join public sessions.
+      </p>
+      <Button onClick={handleSignIn}>Sign in with Google</Button>
+    </div>
+  );
+}
+
 
 export function PublicSessions() {
   const firestore = useFirestore();
+  const { user, isUserLoading } = useUser();
 
   const sessionsQuery = useMemoFirebase(() => {
-    if (!firestore) return null;
+    // Only create the query if the user is logged in and firestore is available
+    if (!firestore || !user) return null;
     
     const sessionsCollection = collection(firestore, 'sessions');
     return query(
@@ -18,10 +41,12 @@ export function PublicSessions() {
       where('visibility', '==', 'public'),
       orderBy('createdAt', 'desc')
     );
-  }, [firestore]);
+  }, [firestore, user]);
 
-  const { data: sessions, isLoading } = useCollection<Session>(sessionsQuery);
+  const { data: sessions, isLoading: isLoadingSessions } = useCollection<Session>(sessionsQuery);
   
+  const showLoadingState = isUserLoading || (user && isLoadingSessions);
+
   return (
     <div className="space-y-8">
       <div className="text-center">
@@ -33,12 +58,14 @@ export function PublicSessions() {
         </p>
       </div>
 
-      {isLoading ? (
+      {showLoadingState ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {[...Array(3)].map((_, i) => (
             <Skeleton key={i} className="h-60 w-full rounded-lg" />
           ))}
         </div>
+      ) : !user ? (
+        <SignInPrompt />
       ) : sessions && sessions.length > 0 ? (
         <PublicSessionsList sessions={sessions} />
       ) : (
