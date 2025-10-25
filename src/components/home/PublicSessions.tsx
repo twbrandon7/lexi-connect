@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo } from 'react';
-import { collection, query, where } from 'firebase/firestore';
+import { collection, query, where, orderBy } from 'firebase/firestore';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import type { Session } from '@/lib/types';
 import { SessionItem } from './SessionItem';
@@ -15,14 +15,17 @@ export function PublicSessions() {
 
   const sessionsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    // This query is designed to fetch public sessions.
-    // It is protected by Firestore security rules that should allow this specific query.
-    return query(collection(firestore, 'public_sessions'));
+    // Query the single sessions collection for documents where visibility is 'public'.
+    return query(
+        collection(firestore, 'sessions'), 
+        where('visibility', '==', 'public'),
+        orderBy('createdAt', 'desc')
+    );
   }, [firestore]);
 
   // The useCollection hook has built-in contextual error handling.
   // If a permission error occurs here, it will be emitted globally
-  // and caught by the FirebaseErrorListener.
+  // and caught by the FirebaseErrorListener, showing a detailed overlay.
   const { data: sessions, isLoading, error } = useCollection<Session>(sessionsQuery);
   
   if (isLoading) {
@@ -73,7 +76,7 @@ export function PublicSessions() {
       
       {sessions && sessions.length > 0 ? (
          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {[...sessions].sort((a, b) => b.createdAt - a.createdAt).map((session) => (
+            {sessions.map((session) => (
                 <SessionItem key={session.id} session={session} />
             ))}
         </div>

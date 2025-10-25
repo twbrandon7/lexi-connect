@@ -67,30 +67,19 @@ export default function SessionPage({ params }: { params: Promise<{ sessionId: s
       setIsLoading(true);
 
       try {
-        // Try fetching from private sessions first
-        const privateRef = doc(firestore, 'sessions', sessionId);
-        let sessionSnap = await getDoc(privateRef);
-
-        if (sessionSnap.exists()) {
-          setSession({ id: sessionSnap.id, ...sessionSnap.data() } as Session);
-          setIsLoading(false);
-          return;
-        }
-
-        // If not found, try public sessions
-        const publicRef = doc(firestore, 'public_sessions', sessionId);
-        sessionSnap = await getDoc(publicRef);
+        const sessionRef = doc(firestore, 'sessions', sessionId);
+        const sessionSnap = await getDoc(sessionRef);
 
         if (sessionSnap.exists()) {
           setSession({ id: sessionSnap.id, ...sessionSnap.data() } as Session);
         } else {
-          // If it doesn't exist in either, it's not found
           setSession(null);
         }
       } catch (e: any) {
         console.error("Error fetching session:", e);
         // We only set a critical error if it's NOT a permission error.
-        // Permission errors are expected when a non-owner tries to access a private session.
+        // Permission errors are expected when a non-owner tries to access a private session
+        // and are handled by the security rules, resulting in a "not found" state for the user.
         if (e.code !== 'permission-denied') {
           setError(e);
         }
@@ -111,7 +100,7 @@ export default function SessionPage({ params }: { params: Promise<{ sessionId: s
     return <SessionContent session={session} sessionId={sessionId} />;
   }
 
-  // If we finished loading, found no session, and there was no critical error, the session doesn't exist.
+  // If we finished loading, found no session, and there was no critical error, the session doesn't exist or is not accessible.
   if (!session && !error) {
      return (
       <div className="container mx-auto px-4 py-8">

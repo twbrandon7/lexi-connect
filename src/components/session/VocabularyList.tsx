@@ -17,10 +17,9 @@ export function VocabularyList({ sessionId, sessionVisibility }: VocabularyListP
 
   const cardsQuery = useMemoFirebase(() => {
     if (!firestore || !sessionId) return null;
-    const collectionName = sessionVisibility === 'public' ? 'public_sessions' : 'sessions';
-    const cardsCollection = collection(firestore, `${collectionName}/${sessionId}/vocabularyCards`);
+    const cardsCollection = collection(firestore, `sessions/${sessionId}/vocabularyCards`);
     return query(cardsCollection, orderBy('createdAt', 'desc'));
-  }, [firestore, sessionId, sessionVisibility]);
+  }, [firestore, sessionId]);
 
   const { data: cards, isLoading } = useCollection<VocabularyCard>(cardsQuery);
 

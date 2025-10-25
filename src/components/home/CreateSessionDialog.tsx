@@ -6,7 +6,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useUser, useFirestore, setDocumentNonBlocking } from '@/firebase';
-import { collection, doc, writeBatch, arrayUnion } from 'firebase/firestore';
+import { collection, doc } from 'firebase/firestore';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -76,38 +76,21 @@ export function CreateSessionDialog({ open, onOpenChange }: CreateSessionDialogP
     }
     setIsSubmitting(true);
 
-    const isPublic = values.visibility === 'public';
-    const collectionName = isPublic ? 'public_sessions' : 'sessions';
-    const newSessionRef = doc(collection(firestore, collectionName));
-
-    const newSession: Session = {
-      id: newSessionRef.id,
-      name: values.name,
-      motherLanguage: values.motherLanguage,
-      visibility: values.visibility,
-      hostId: user.uid,
-      createdAt: Date.now(),
-      participantCount: 1,
-    };
-
     try {
-      if (isPublic) {
-        // For public sessions, we use a batch write to create the session
-        // and update the public index in a single atomic operation.
-        const batch = writeBatch(firestore);
-        const publicIndexRef = doc(firestore, 'public', 'sessions');
+      const newSessionRef = doc(collection(firestore, 'sessions'));
 
-        batch.set(newSessionRef, newSession);
-        batch.set(publicIndexRef, {
-            sessionIds: arrayUnion(newSession.id)
-        }, { merge: true });
-
-        await batch.commit();
-
-      } else {
-        // For private sessions, we can just set the document directly.
-        setDocumentNonBlocking(newSessionRef, newSession, {});
-      }
+      const newSession: Session = {
+        id: newSessionRef.id,
+        name: values.name,
+        motherLanguage: values.motherLanguage,
+        visibility: values.visibility,
+        hostId: user.uid,
+        createdAt: Date.now(),
+        participantCount: 1,
+      };
+      
+      // Use non-blocking set for a faster UI response
+      setDocumentNonBlocking(newSessionRef, newSession, {});
 
       toast({
         title: 'Session Created!',
