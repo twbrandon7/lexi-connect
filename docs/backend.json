@@ -220,37 +220,17 @@
         }
       },
       {
-        "path": "/users/{userId}/sessions/{sessionId}",
+        "path": "/sessions/{sessionId}",
         "definition": {
           "entityName": "Session",
           "schema": {
             "$ref": "#/backend/entities/Session"
           },
-          "description": "Collection for storing sessions created by a specific user. Visibility is controlled by storing public sessions in a separate collection.",
+          "description": "Collection for storing all sessions, both public and private. Access is controlled by security rules based on the 'visibility' field.",
           "params": [
-            {
-              "name": "userId",
-              "description": "The unique identifier for the user (session host)."
-            },
             {
               "name": "sessionId",
               "description": "The unique identifier for the session."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/public_sessions/{sessionId}",
-        "definition": {
-          "entityName": "Session",
-          "schema": {
-            "$ref": "#/backend/entities/Session"
-          },
-          "description": "Collection for storing public sessions.  Accessible to all users. Includes denormalized 'hostId' field for efficient querying and authorization.  The security rules will ensure that only sessions with 'visibility' set to 'public' can be stored here.",
-          "params": [
-            {
-              "name": "sessionId",
-              "description": "The unique identifier for the public session."
             }
           ]
         }
@@ -276,6 +256,6 @@
         }
       }
     ],
-    "reasoning": "The Firestore structure is designed to support a collaborative vocabulary learning application with AI-powered features. It prioritizes authorization independence and secure list operations by denormalizing data and segregating collections based on access needs.  User-owned data is stored under `/users/{userId}` paths. Collaborative session data and vocabulary cards are stored separately to allow for different security rules and QAPs. The design uses path-based ownership and membership maps for clear authorization.  Specifically, ownership is enforced at `/users/{userId}` and session membership is managed by a denormalized `members` map within each session document. This eliminates the need for `get()` calls in the security rules, enabling atomic operations. Public vs Private Sessions are segregated to `/public_sessions` and `/users/{userId}/private_sessions`, respectively, enabling secure `list` operations based on user ID and session visibility. This structure also supports invariants by enforcing consistent ownership and timestamps through security rules."
+    "reasoning": "The Firestore structure has been simplified to use a single `/sessions` collection for all sessions. This removes the complexity of managing two separate collections for public and private sessions. Access control is now handled entirely by Firestore security rules, which inspect the `visibility` field within each session document. This is a more standard and efficient approach. User-owned data remains under `/users/{userId}` for clear path-based ownership."
   }
 }

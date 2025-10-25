@@ -39,34 +39,12 @@ export default function SessionPage({ params }: { params: Promise<{ sessionId: s
   const { sessionId } = use(params);
   const firestore = useFirestore();
 
-  // Reference for the private 'sessions' collection
-  const privateSessionRef = useMemoFirebase(() => {
+  const sessionRef = useMemoFirebase(() => {
     if (!firestore || !sessionId) return null;
     return doc(firestore, 'sessions', sessionId);
   }, [firestore, sessionId]);
 
-  // Reference for the 'public_sessions' collection
-  const publicSessionRef = useMemoFirebase(() => {
-    if (!firestore || !sessionId) return null;
-    return doc(firestore, 'public_sessions', sessionId);
-  }, [firestore, sessionId]);
-
-  // Fetch from both collections. The hooks will handle loading and errors internally.
-  const { data: privateSession, isLoading: isLoadingPrivate, error: privateError } = useDoc<Session>(privateSessionRef);
-  const { data: publicSession, isLoading: isLoadingPublic, error: publicError } = useDoc<Session>(publicSessionRef);
-  
-  // We are loading if either of the fetches are in progress.
-  const isLoading = isLoadingPrivate || isLoadingPublic;
-  
-  // The session is whichever one of the two lookups returned data.
-  const session = privateSession || publicSession;
-
-  // An actual error only occurs if both lookups fail for reasons other than "not found".
-  // We ignore permission errors on the private collection lookup, as it's expected for public sessions.
-  const isPrivateLookupPermissionError = privateError?.message.includes('Missing or insufficient permissions');
-  
-  // Show a generic error if the public lookup fails, or if the private lookup fails for a non-permission reason.
-  const displayError = publicError || (privateError && !isPrivateLookupPermissionError) ? (publicError || privateError) : null;
+  const { data: session, isLoading, error } = useDoc<Session>(sessionRef);
 
   if (isLoading) {
     return (
@@ -87,26 +65,26 @@ export default function SessionPage({ params }: { params: Promise<{ sessionId: s
   }
 
   // If we finished loading, found no session, and there was no critical error, the session doesn't exist.
-  if (!session && !displayError) {
+  if (!session && !error) {
      return (
       <div className="container mx-auto px-4 py-8">
         <Alert variant="destructive">
           <Terminal className="h-4 w-4" />
           <AlertTitle>Session Not Found</AlertTitle>
-          <AlertDescription>The session ID is invalid or the session has been deleted.</AlertDescription>
+          <AlertDescription>The session ID is invalid, the session has been deleted, or you do not have permission to view it.</AlertDescription>
         </Alert>
       </div>
     );
   }
 
   // If there was a critical error during fetching.
-  if (displayError) {
+  if (error) {
     return (
       <div className="container mx-auto px-4 py-8">
         <Alert variant="destructive">
           <Terminal className="h-4 w-4" />
           <AlertTitle>Error</AlertTitle>
-          <AlertDescription>{displayError.message}</AlertDescription>
+          <AlertDescription>{error.message}</AlertDescription>
         </Alert>
       </div>
     );

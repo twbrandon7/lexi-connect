@@ -76,9 +76,7 @@ export function CreateSessionDialog({ open, onOpenChange }: CreateSessionDialogP
     }
     setIsSubmitting(true);
     
-    const isPublic = values.visibility === 'public';
-    const targetCollection = isPublic ? 'public_sessions' : 'sessions';
-    const newSessionRef = doc(collection(firestore, targetCollection));
+    const newSessionRef = doc(collection(firestore, 'sessions'));
 
     const newSession: Session = {
       id: newSessionRef.id,
