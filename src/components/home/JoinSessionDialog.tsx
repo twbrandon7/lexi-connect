@@ -52,26 +52,49 @@ export function JoinSessionDialog({ open, onOpenChange }: JoinSessionDialogProps
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
+    if (!firestore) {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Database not available. Please try again later.',
+      });
+      return;
+    }
     setIsSubmitting(true);
-    try {
-      const sessionRef = doc(firestore, `sessions/${values.sessionId}`);
-      const snapshot = await getDoc(sessionRef);
 
-      if (snapshot.exists()) {
+    try {
+      const sessionId = values.sessionId;
+      // Check for the session in both 'public_sessions' and 'sessions' collections
+      const publicRef = doc(firestore, 'public_sessions', sessionId);
+      const privateRef = doc(firestore, 'sessions', sessionId);
+
+      const publicSnap = await getDoc(publicRef);
+      if (publicSnap.exists()) {
         onOpenChange(false);
-        router.push(`/sessions/${values.sessionId}`);
-      } else {
-        form.setError('sessionId', {
-          type: 'manual',
-          message: 'Session not found. Please check the ID and try again.',
-        });
+        router.push(`/sessions/${sessionId}`);
+        return;
       }
+
+      const privateSnap = await getDoc(privateRef);
+      if (privateSnap.exists()) {
+        onOpenChange(false);
+        router.push(`/sessions/${sessionId}`);
+        return;
+      }
+
+      // If it exists in neither
+      form.setError('sessionId', {
+        type: 'manual',
+        message: 'Session not found. Please check the ID and try again.',
+      });
     } catch (error) {
       console.error('Failed to join session:', error);
       toast({
         variant: 'destructive',
         title: 'Error Joining Session',
-        description: 'Could not verify session ID. Please check your connection.',
+        description:
+          (error as Error).message ||
+          'Could not verify session ID. Please check your connection.',
       });
     } finally {
       setIsSubmitting(false);
@@ -82,9 +105,9 @@ export function JoinSessionDialog({ open, onOpenChange }: JoinSessionDialogProps
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Join a Private Session</DialogTitle>
+          <DialogTitle>Join a Session by ID</DialogTitle>
           <DialogDescription>
-            Enter the unique ID of the session you want to join.
+            Enter the unique ID of the public or private session you want to join.
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>

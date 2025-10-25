@@ -39,27 +39,34 @@ export default function SessionPage({ params }: { params: Promise<{ sessionId: s
   const { sessionId } = use(params);
   const firestore = useFirestore();
 
-  // Attempt to fetch from the general 'sessions' collection first.
-  // This covers private sessions owned by the user.
-  const sessionRef = useMemoFirebase(() => {
+  // Reference for the private 'sessions' collection
+  const privateSessionRef = useMemoFirebase(() => {
     if (!firestore || !sessionId) return null;
     return doc(firestore, 'sessions', sessionId);
   }, [firestore, sessionId]);
 
-  const { data: directSession, isLoading: isLoadingDirect, error: directError } = useDoc<Session>(sessionRef);
-  
-  // Simultaneously attempt to fetch from 'public_sessions'.
+  // Reference for the 'public_sessions' collection
   const publicSessionRef = useMemoFirebase(() => {
     if (!firestore || !sessionId) return null;
     return doc(firestore, 'public_sessions', sessionId);
   }, [firestore, sessionId]);
 
+  // Fetch from both collections. The hooks will handle loading and errors internally.
+  const { data: privateSession, isLoading: isLoadingPrivate, error: privateError } = useDoc<Session>(privateSessionRef);
   const { data: publicSession, isLoading: isLoadingPublic, error: publicError } = useDoc<Session>(publicSessionRef);
+  
+  // We are loading if either of the fetches are in progress.
+  const isLoading = isLoadingPrivate || isLoadingPublic;
+  
+  // The session is whichever one of the two lookups returned data.
+  const session = privateSession || publicSession;
 
-  const isLoading = isLoadingDirect || isLoadingPublic;
-  const session = directSession || publicSession;
-  const error = directError || publicError;
-
+  // An actual error only occurs if both lookups fail for reasons other than "not found".
+  // We ignore permission errors on the private collection lookup, as it's expected for public sessions.
+  const isPrivateLookupPermissionError = privateError?.message.includes('Missing or insufficient permissions');
+  
+  // Show a generic error if the public lookup fails, or if the private lookup fails for a non-permission reason.
+  const displayError = publicError || (privateError && !isPrivateLookupPermissionError) ? (publicError || privateError) : null;
 
   if (isLoading) {
     return (
@@ -75,34 +82,35 @@ export default function SessionPage({ params }: { params: Promise<{ sessionId: s
     );
   }
   
-  if (!session && !isLoading) {
-    return (
-     <div className="container mx-auto px-4 py-8">
-       <Alert variant="destructive">
-         <Terminal className="h-4 w-4" />
-         <AlertTitle>Error</AlertTitle>
-         <AlertDescription>Session not found. It may be private or no longer exists.</AlertDescription>
-       </Alert>
-     </div>
-   );
- }
-
   if (session) {
     return <SessionContent session={session} sessionId={sessionId} />;
   }
 
-  // This will show the actual permission error if both lookups fail due to permissions
-  if (error && !isLoading) {
-    return (
+  // If we finished loading, found no session, and there was no critical error, the session doesn't exist.
+  if (!session && !displayError) {
+     return (
       <div className="container mx-auto px-4 py-8">
         <Alert variant="destructive">
           <Terminal className="h-4 w-4" />
-          <AlertTitle>Error</AlertTitle>
-          <AlertDescription>{error.message}</AlertDescription>
+          <AlertTitle>Session Not Found</AlertTitle>
+          <AlertDescription>The session ID is invalid or the session has been deleted.</AlertDescription>
         </Alert>
       </div>
     );
   }
 
-  return null; // Should not be reached in normal flow
+  // If there was a critical error during fetching.
+  if (displayError) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <Alert variant="destructive">
+          <Terminal className="h-4 w-4" />
+          <AlertTitle>Error</AlertTitle>
+          <AlertDescription>{displayError.message}</AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
+
+  return null; // Should not be reached
 }
