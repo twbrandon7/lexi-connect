@@ -13,16 +13,53 @@ import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 
+function SessionContent({ session, sessionId }: { session: Session; sessionId: string }) {
+  return (
+    <div className="container mx-auto px-4 py-8">
+      <div className="mb-8 space-y-4">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <h1 className="text-3xl md:text-4xl font-bold font-headline truncate">{session.name}</h1>
+          <div className="flex items-center gap-4">
+            <Badge variant={session.visibility === 'public' ? 'default' : 'secondary'}>
+              {session.visibility}
+            </Badge>
+            <Button asChild>
+              <Link href={`/practice/${sessionId}`}>Start Practice</Link>
+            </Button>
+          </div>
+        </div>
+        <AIQuery sessionId={sessionId} sessionLanguage={session.motherLanguage} />
+      </div>
+      <VocabularyList sessionId={sessionId} />
+    </div>
+  );
+}
+
 export default function SessionPage({ params }: { params: Promise<{ sessionId: string }> }) {
   const { sessionId } = use(params);
   const firestore = useFirestore();
 
+  // Attempt to fetch from the general 'sessions' collection first.
+  // This covers private sessions owned by the user.
   const sessionRef = useMemoFirebase(() => {
     if (!firestore || !sessionId) return null;
     return doc(firestore, 'sessions', sessionId);
   }, [firestore, sessionId]);
 
-  const { data: session, isLoading, error } = useDoc<Session>(sessionRef);
+  const { data: directSession, isLoading: isLoadingDirect, error: directError } = useDoc<Session>(sessionRef);
+  
+  // Simultaneously attempt to fetch from 'public_sessions'.
+  const publicSessionRef = useMemoFirebase(() => {
+    if (!firestore || !sessionId) return null;
+    return doc(firestore, 'public_sessions', sessionId);
+  }, [firestore, sessionId]);
+
+  const { data: publicSession, isLoading: isLoadingPublic, error: publicError } = useDoc<Session>(publicSessionRef);
+
+  const isLoading = isLoadingDirect || isLoadingPublic;
+  const session = directSession || publicSession;
+  const error = directError || publicError;
+
 
   if (isLoading) {
     return (
@@ -37,8 +74,25 @@ export default function SessionPage({ params }: { params: Promise<{ sessionId: s
       </div>
     );
   }
+  
+  if (!session && !isLoading) {
+    return (
+     <div className="container mx-auto px-4 py-8">
+       <Alert variant="destructive">
+         <Terminal className="h-4 w-4" />
+         <AlertTitle>Error</AlertTitle>
+         <AlertDescription>Session not found. It may be private or no longer exists.</AlertDescription>
+       </Alert>
+     </div>
+   );
+ }
 
-  if (error) {
+  if (session) {
+    return <SessionContent session={session} sessionId={sessionId} />;
+  }
+
+  // This will show the actual permission error if both lookups fail due to permissions
+  if (error && !isLoading) {
     return (
       <div className="container mx-auto px-4 py-8">
         <Alert variant="destructive">
@@ -50,36 +104,5 @@ export default function SessionPage({ params }: { params: Promise<{ sessionId: s
     );
   }
 
-  if (!session) {
-     return (
-      <div className="container mx-auto px-4 py-8">
-        <Alert variant="destructive">
-          <Terminal className="h-4 w-4" />
-          <AlertTitle>Error</AlertTitle>
-          <AlertDescription>Session not found.</AlertDescription>
-        </Alert>
-      </div>
-    );
-  }
-
-  return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="mb-8 space-y-4">
-        <div className='flex flex-wrap items-center justify-between gap-4'>
-            <h1 className="text-3xl md:text-4xl font-bold font-headline truncate">{session.name}</h1>
-            <div className='flex items-center gap-4'>
-                <Badge variant={session.visibility === 'public' ? 'default' : 'secondary'}>
-                {session.visibility}
-                </Badge>
-                <Button asChild>
-                    <Link href={`/practice/${sessionId}`}>Start Practice</Link>
-                </Button>
-            </div>
-        </div>
-        <AIQuery sessionId={sessionId} sessionLanguage={session.motherLanguage} />
-      </div>
-
-      <VocabularyList sessionId={sessionId} />
-    </div>
-  );
+  return null; // Should not be reached in normal flow
 }
