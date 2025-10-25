@@ -1,8 +1,8 @@
 'use client';
 
-import { useMemo } from 'react';
-import { collection, query, where, orderBy } from 'firebase/firestore';
-import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { useMemo, useState, useEffect } from 'react';
+import { doc, getDoc, getDocs, collection, query, where, documentId, orderBy } from 'firebase/firestore';
+import { useFirestore, useDoc, useCollection, useMemoFirebase } from '@/firebase';
 import type { Session } from '@/lib/types';
 import { SessionItem } from './SessionItem';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -12,21 +12,63 @@ import { Terminal } from 'lucide-react';
 
 export function PublicSessions() {
   const firestore = useFirestore();
-
-  const sessionsQuery = useMemoFirebase(() => {
-    if (!firestore) return null;
-    // Query the single sessions collection for documents where visibility is 'public'.
-    return query(
-        collection(firestore, 'sessions'), 
-        where('visibility', '==', 'public'),
-        orderBy('createdAt', 'desc')
-    );
+  
+  // 1. Hook to get the public session index document
+  const publicIndexRef = useMemoFirebase(() => {
+      if (!firestore) return null;
+      return doc(firestore, 'public', 'sessions');
   }, [firestore]);
+  const { data: publicIndex, isLoading: isIndexLoading, error: indexError } = useDoc<{ sessionIds: string[] }>(publicIndexRef);
 
-  // The useCollection hook has built-in contextual error handling.
-  // If a permission error occurs here, it will be emitted globally
-  // and caught by the FirebaseErrorListener, showing a detailed overlay.
-  const { data: sessions, isLoading, error } = useCollection<Session>(sessionsQuery);
+  // 2. State for the final session data
+  const [sessions, setSessions] = useState<Session[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+
+  // 3. Effect to fetch sessions based on the index
+  useEffect(() => {
+    if (isIndexLoading || !firestore) {
+      setIsLoading(true);
+      return;
+    }
+
+    if (indexError) {
+      setError(indexError);
+      setIsLoading(false);
+      return;
+    }
+    
+    const sessionIds = publicIndex?.sessionIds;
+
+    if (!sessionIds || sessionIds.length === 0) {
+      setSessions([]);
+      setIsLoading(false);
+      return;
+    }
+
+    const fetchSessions = async () => {
+      try {
+        const sessionsRef = collection(firestore, 'sessions');
+        // Firestore 'in' query is limited to 30 items. If more are needed, batching is required.
+        const q = query(sessionsRef, where(documentId(), 'in', sessionIds.slice(0, 30)));
+        const querySnapshot = await getDocs(q);
+        const fetchedSessions = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Session));
+        
+        // Sort sessions by creation date, descending
+        fetchedSessions.sort((a, b) => b.createdAt - a.createdAt);
+
+        setSessions(fetchedSessions);
+      } catch (e: any) {
+        console.error("Error fetching public sessions:", e);
+        setError(e);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchSessions();
+
+  }, [publicIndex, isIndexLoading, indexError, firestore]);
   
   if (isLoading) {
     return (
@@ -51,8 +93,6 @@ export function PublicSessions() {
     );
   }
 
-  // If a non-permission error occurs, we can display it directly.
-  // Permission errors are thrown by the listener and handled by Next.js error boundaries.
   if (error) {
      return (
         <section className="space-y-6">
@@ -62,7 +102,7 @@ export function PublicSessions() {
             <Alert variant="destructive">
                 <Terminal className="h-4 w-4" />
                 <AlertTitle>Error Loading Sessions</AlertTitle>
-                <AlertDescription>Could not load public sessions. Please try again later.</AlertDescription>
+                <AlertDescription>{error.message || 'Could not load public sessions. Please try again later.'}</AlertDescription>
             </Alert>
         </section>
      )
