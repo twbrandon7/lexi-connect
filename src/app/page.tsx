@@ -6,9 +6,10 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { CreateSessionDialog } from '@/components/home/CreateSessionDialog';
 import { JoinSessionDialog } from '@/components/home/JoinSessionDialog';
-import { PublicSessions } from '@/components/home/PublicSessions';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { Sparkles } from 'lucide-react';
+import { Separator } from '@/components/ui/separator';
+import { PublicSessions } from '@/components/home/PublicSessions';
 
 export default function Home() {
   const [createOpen, setCreateOpen] = useState(false);
@@ -54,6 +55,8 @@ export default function Home() {
           </Card>
         </div>
       </div>
+
+      <Separator className="my-16" />
 
       <PublicSessions />
 

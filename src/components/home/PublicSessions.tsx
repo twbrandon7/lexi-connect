@@ -1,133 +1,66 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { doc, getDocs, collection, query, where, documentId } from 'firebase/firestore';
-import { useFirestore, useDoc, useMemoFirebase } from '@/firebase';
+import { doc, query, where, documentId, collection } from 'firebase/firestore';
+import { useDoc, useCollection, useFirestore, useMemoFirebase } from '@/firebase';
 import type { Session } from '@/lib/types';
-import { SessionItem } from './SessionItem';
+import { PublicSessionsList } from './PublicSessionsList';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Terminal } from 'lucide-react';
-import { Card, CardContent, CardHeader } from '../ui/card';
 
 export function PublicSessions() {
   const firestore = useFirestore();
+
+  // 1. Fetch the public session index document
+  const publicIndexRef = useMemoFirebase(
+    () => (firestore ? doc(firestore, 'public/sessions') : null),
+    [firestore]
+  );
+  const { data: publicIndex, isLoading: isLoadingIndex } = useDoc<{ sessionIds: string[] }>(publicIndexRef);
+
+  const publicSessionIds = publicIndex?.sessionIds;
+
+  // 2. Fetch the actual session documents based on the IDs from the index
+  const sessionsQuery = useMemoFirebase(() => {
+    if (!firestore || !publicSessionIds || publicSessionIds.length === 0) {
+      return null;
+    }
+    const sessionsCollection = collection(firestore, 'sessions');
+    // Firestore 'in' queries are limited to 30 elements.
+    // For this app, we'll assume we won't exceed that.
+    // For a production app with more items, pagination or multiple queries would be needed.
+    return query(sessionsCollection, where(documentId(), 'in', publicSessionIds.slice(0, 30)));
+  }, [firestore, publicSessionIds]);
+
+  const { data: sessions, isLoading: isLoadingSessions } = useCollection<Session>(sessionsQuery);
+
+  const isLoading = isLoadingIndex || (publicSessionIds && publicSessionIds.length > 0 && isLoadingSessions);
   
-  // 1. Hook to get the public session index document
-  const publicIndexRef = useMemoFirebase(() => {
-      if (!firestore) return null;
-      return doc(firestore, 'public', 'sessions');
-  }, [firestore]);
-  const { data: publicIndex, isLoading: isIndexLoading, error: indexError } = useDoc<{ sessionIds: string[] }>(publicIndexRef);
-
-  // 2. State for the final session data
-  const [sessions, setSessions] = useState<Session[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
-
-  // 3. Effect to fetch sessions based on the index
-  useEffect(() => {
-    // Wait until the index is loaded and firestore is available
-    if (isIndexLoading || !firestore) {
-      setIsLoading(true);
-      return;
-    }
-
-    if (indexError) {
-      setError(indexError);
-      setIsLoading(false);
-      return;
-    }
-    
-    const sessionIds = publicIndex?.sessionIds;
-
-    // If there are no public session IDs, we're done.
-    if (!sessionIds || sessionIds.length === 0) {
-      setSessions([]);
-      setIsLoading(false);
-      return;
-    }
-
-    const fetchSessions = async () => {
-      try {
-        const sessionsRef = collection(firestore, 'sessions');
-        // Firestore 'in' query is limited to 30 items. We'll take the most recent 30.
-        const q = query(sessionsRef, where(documentId(), 'in', sessionIds.slice(0, 30)));
-        const querySnapshot = await getDocs(q);
-        const fetchedSessions = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Session));
-        
-        // Sort sessions by creation date, descending, as Firestore doesn't guarantee order with 'in' queries.
-        fetchedSessions.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
-
-        setSessions(fetchedSessions);
-      } catch (e: any) {
-        console.error("Error fetching public sessions:", e);
-        setError(e);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    
-    fetchSessions();
-
-  }, [publicIndex, isIndexLoading, indexError, firestore]);
-  
-  if (isLoading) {
-    return (
-        <section className="space-y-6">
-            <h2 className="text-2xl md:text-3xl font-bold font-headline">
-                Join a Public Session
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {[...Array(3)].map((_, i) => (
-                <Card key={i}>
-                    <CardHeader>
-                    <Skeleton className="h-6 w-3/4" />
-                    </CardHeader>
-                    <CardContent className="space-y-2">
-                    <Skeleton className="h-4 w-full" />
-                    <Skeleton className="h-4 w-1/2" />
-                    </CardContent>
-                </Card>
-                ))}
-            </div>
-      </section>
-    );
-  }
-
-  if (error) {
-     return (
-        <section className="space-y-6">
-            <h2 className="text-2xl md:text-3xl font-bold font-headline">
-                Join a Public Session
-            </h2>
-            <Alert variant="destructive">
-                <Terminal className="h-4 w-4" />
-                <AlertTitle>Error Loading Sessions</AlertTitle>
-                <AlertDescription>{error.message || 'Could not load public sessions. Please try again later.'}</AlertDescription>
-            </Alert>
-        </section>
-     )
-  }
-
   return (
-    <section className="space-y-6">
-      <h2 className="text-2xl md:text-3xl font-bold font-headline">
-        Join a Public Session
-      </h2>
-      
-      {sessions && sessions.length > 0 ? (
-         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {sessions.map((session) => (
-                <SessionItem key={session.id} session={session} />
-            ))}
+    <div className="space-y-8">
+      <div className="text-center">
+        <h2 className="text-3xl md:text-4xl font-bold font-headline">
+          Join a Public Session
+        </h2>
+        <p className="text-muted-foreground mt-2">
+          Explore sessions created by other users and learn together.
+        </p>
+      </div>
+
+      {isLoading ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {[...Array(3)].map((_, i) => (
+            <Skeleton key={i} className="h-60 w-full rounded-lg" />
+          ))}
         </div>
+      ) : sessions && sessions.length > 0 ? (
+        <PublicSessionsList sessions={sessions} />
       ) : (
-        <div className="text-center py-10 border-2 border-dashed rounded-lg">
-            <p className="text-muted-foreground">No public sessions available right now.</p>
-            <p className="text-sm text-muted-foreground">Why not create one?</p>
+        <div className="text-center py-16 border-2 border-dashed rounded-lg">
+          <h3 className="text-xl font-semibold">No Public Sessions Found</h3>
+          <p className="text-muted-foreground mt-2">
+            Why not be the first to create one?
+          </p>
         </div>
       )}
-    </section>
+    </div>
   );
 }
