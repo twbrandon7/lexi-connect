@@ -1,7 +1,8 @@
 'use client';
 
-import { collection, query, where, orderBy } from 'firebase/firestore';
-import { useCollection, useFirestore, useMemoFirebase, useUser } from '@/firebase';
+import { useEffect, useState } from 'react';
+import { collection, query, where, orderBy, getDocs } from 'firebase/firestore';
+import { useFirestore, useUser } from '@/firebase';
 import type { Session } from '@/lib/types';
 import { PublicSessionsList } from './PublicSessionsList';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -30,23 +31,47 @@ function SignInPrompt() {
 export function PublicSessions() {
   const firestore = useFirestore();
   const { user, isUserLoading } = useUser();
+  const [sessions, setSessions] = useState<Session[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const sessionsQuery = useMemoFirebase(() => {
-    // Only create the query if the user is logged in and firestore is available
-    if (!firestore || !user) return null;
+  useEffect(() => {
+    // Don't fetch if the user's auth status is still loading
+    if (isUserLoading) {
+      setIsLoading(true);
+      return;
+    }
     
-    const sessionsCollection = collection(firestore, 'sessions');
-    return query(
-      sessionsCollection, 
-      where('visibility', '==', 'public'),
-      orderBy('createdAt', 'desc')
-    );
-  }, [firestore, user]);
+    // Don't fetch if there's no user or no firestore instance
+    if (!user || !firestore) {
+      setIsLoading(false);
+      return;
+    }
 
-  const { data: sessions, isLoading: isLoadingSessions } = useCollection<Session>(sessionsQuery);
+    const fetchPublicSessions = async () => {
+      setIsLoading(true);
+      try {
+        const sessionsCollection = collection(firestore, 'sessions');
+        const q = query(
+          sessionsCollection, 
+          where('visibility', '==', 'public'),
+          orderBy('createdAt', 'desc')
+        );
+        
+        const querySnapshot = await getDocs(q);
+        const publicSessions = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Session));
+        setSessions(publicSessions);
+      } catch (error) {
+        console.error("Error fetching public sessions:", error);
+        // You might want to set an error state here and display it to the user
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchPublicSessions();
+
+  }, [firestore, user, isUserLoading]);
   
-  const showLoadingState = isUserLoading || (user && isLoadingSessions);
-
   return (
     <div className="space-y-8">
       <div className="text-center">
@@ -58,7 +83,7 @@ export function PublicSessions() {
         </p>
       </div>
 
-      {showLoadingState ? (
+      {isLoading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {[...Array(3)].map((_, i) => (
             <Skeleton key={i} className="h-60 w-full rounded-lg" />
