@@ -1,6 +1,6 @@
 'use client';
 
-import { query, orderBy, limit, where } from 'firebase/firestore';
+import { query, orderBy, limit } from 'firebase/firestore';
 import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
 import { collection } from 'firebase/firestore';
 import type { Session } from '@/lib/types';
@@ -13,10 +13,9 @@ export function PublicSessions() {
 
   const sessionsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    const sessionsCollection = collection(firestore, 'sessions');
+    const sessionsCollection = collection(firestore, 'public_sessions');
     return query(
       sessionsCollection,
-      where('visibility', '==', 'public'),
       orderBy('createdAt', 'desc'),
       limit(20)
     );
