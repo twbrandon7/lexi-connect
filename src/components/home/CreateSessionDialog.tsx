@@ -76,8 +76,9 @@ export function CreateSessionDialog({ open, onOpenChange }: CreateSessionDialogP
     }
     setIsSubmitting(true);
 
+    const newSessionRef = doc(collection(firestore, 'sessions'));
+
     try {
-      const newSessionRef = doc(collection(firestore, 'sessions'));
       
       const newSession: Session = {
         id: newSessionRef.id,
@@ -97,6 +98,8 @@ export function CreateSessionDialog({ open, onOpenChange }: CreateSessionDialogP
       // 2. If public, add its ID to the public index
       if (values.visibility === 'public') {
         const publicIndexRef = doc(firestore, 'public', 'sessions');
+        // Use update with arrayUnion. If the doc doesn't exist, this will fail.
+        // We handle this failure in the catch block by creating the doc.
         batch.update(publicIndexRef, {
             sessionIds: arrayUnion(newSession.id)
         });
@@ -116,11 +119,27 @@ export function CreateSessionDialog({ open, onOpenChange }: CreateSessionDialogP
 
     } catch (error: any) {
       console.error('Failed to create session:', error);
-      // Special handling for the case where the index doc doesn't exist
+      // Special handling for the case where the public index doc doesn't exist yet
       if (error.code === 'not-found' && values.visibility === 'public') {
          try {
             const publicIndexRef = doc(firestore, 'public', 'sessions');
-            await setDocumentNonBlocking(publicIndexRef, { sessionIds: [newSessionRef.id] }, {});
+            const sessionDocRef = doc(firestore, 'sessions', newSessionRef.id);
+            
+            const newSessionPayload: Session = {
+              id: newSessionRef.id,
+              name: values.name,
+              motherLanguage: values.motherLanguage,
+              visibility: values.visibility,
+              hostId: user.uid,
+              createdAt: Date.now(),
+              participantCount: 1,
+            };
+
+            const creationBatch = writeBatch(firestore);
+            creationBatch.set(sessionDocRef, newSessionPayload);
+            creationBatch.set(publicIndexRef, { sessionIds: [newSessionRef.id] });
+            await creationBatch.commit();
+
             toast({
                 title: 'Session Created!',
                 description: `Your new session "${values.name}" is ready.`,

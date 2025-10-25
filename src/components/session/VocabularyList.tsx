@@ -9,10 +9,9 @@ import { Skeleton } from '@/components/ui/skeleton';
 
 type VocabularyListProps = {
   sessionId: string;
-  sessionVisibility: 'public' | 'private';
 };
 
-export function VocabularyList({ sessionId, sessionVisibility }: VocabularyListProps) {
+export function VocabularyList({ sessionId }: VocabularyListProps) {
   const firestore = useFirestore();
 
   const cardsQuery = useMemoFirebase(() => {

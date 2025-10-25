@@ -30,7 +30,7 @@ function SessionContent({ session, sessionId }: { session: Session; sessionId: s
         </div>
         <AIQuery sessionId={sessionId} sessionLanguage={session.motherLanguage} />
       </div>
-      <VocabularyList sessionId={sessionId} sessionVisibility={session.visibility} />
+      <VocabularyList sessionId={sessionId} />
     </div>
   );
 }
