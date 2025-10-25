@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { use } from 'react';
 import { doc } from 'firebase/firestore';
 import { useDoc, useFirestore, useMemoFirebase } from '@/firebase';
 import type { Session } from '@/lib/types';
@@ -13,8 +13,8 @@ import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 
-export default function SessionPage({ params }: { params: { sessionId: string } }) {
-  const { sessionId } = params;
+export default function SessionPage({ params }: { params: Promise<{ sessionId: string }> }) {
+  const { sessionId } = use(params);
   const firestore = useFirestore();
 
   const sessionRef = useMemoFirebase(() => {

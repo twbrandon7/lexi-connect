@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { use } from 'react';
 import { collection, query } from 'firebase/firestore';
 import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
 import type { VocabularyCard } from '@/lib/types';
@@ -10,8 +10,8 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
 
-export default function PracticePage({ params }: { params: { sessionId: string } }) {
-  const { sessionId } = params;
+export default function PracticePage({ params }: { params: Promise<{ sessionId: string }> }) {
+  const { sessionId } = use(params);
   const firestore = useFirestore();
 
   const cardsQuery = useMemoFirebase(() => {
