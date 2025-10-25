@@ -7,35 +7,26 @@ import React, {
   useMemo,
   type ReactNode,
 } from 'react';
-import type { User } from '@/lib/types';
+import type { User as FirebaseUser } from 'firebase/auth';
 import { useFirebase } from '@/firebase';
 
 interface UserContextType {
-  user: User | null;
+  user: FirebaseUser | null;
 }
 
 export const UserContext = createContext<UserContextType>({ user: null });
 
 export function UserProvider({ children }: { children: ReactNode }) {
   const { auth } = useFirebase();
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<FirebaseUser | null>(null);
 
   useEffect(() => {
     if (!auth) return;
 
     const unsubscribe = auth.onAuthStateChanged((firebaseUser) => {
       if (firebaseUser) {
-        const newUser: User = {
-          id: firebaseUser.uid,
-          name: firebaseUser.isAnonymous
-            ? `Guest-${firebaseUser.uid.substring(0, 4)}`
-            : firebaseUser.displayName || 'User',
-        };
-        setUser(newUser);
-        localStorage.setItem('lexiconnect_user', JSON.stringify(newUser));
+        setUser(firebaseUser);
       } else {
-        // No user is signed in.
-        // For this app, we'll auto-sign-in an anonymous user.
         auth.signInAnonymously().catch((error) => {
           console.error('Anonymous sign-in failed:', error);
         });

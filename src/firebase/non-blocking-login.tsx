@@ -1,7 +1,9 @@
 'use client';
 import {
   Auth, // Import Auth type for type hinting
+  GoogleAuthProvider,
   signInAnonymously,
+  signInWithPopup,
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   // Assume getAuth and app are initialized elsewhere
@@ -26,4 +28,12 @@ export function initiateEmailSignIn(authInstance: Auth, email: string, password:
   // CRITICAL: Call signInWithEmailAndPassword directly. Do NOT use 'await signInWithEmailAndPassword(...)'.
   signInWithEmailAndPassword(authInstance, email, password);
   // Code continues immediately. Auth state change is handled by onAuthStateChanged listener.
+}
+
+/** Initiate Google Sign-In with a popup (non-blocking). */
+export function initiateGoogleSignIn(authInstance: Auth): void {
+  const provider = new GoogleAuthProvider();
+  // CRITICAL: Call signInWithPopup directly. Do NOT use 'await signInWithPopup(...)'.
+  signInWithPopup(authInstance, provider);
+  // Code continues immediately. Auth state change is handled by the onAuthStateChanged listener.
 }

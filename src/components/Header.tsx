@@ -3,12 +3,18 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Logo } from '@/components/Logo';
-import { useUser } from '@/firebase';
+import { useUser, useAuth, initiateGoogleSignIn } from '@/firebase';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
+import { LogIn } from 'lucide-react';
 
 export function Header() {
   const { user, isUserLoading } = useUser();
+  const auth = useAuth();
+
+  const handleSignIn = () => {
+    initiateGoogleSignIn(auth);
+  };
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -30,7 +36,7 @@ export function Header() {
               <div className="flex items-center gap-2">
                 <Avatar className="h-8 w-8">
                   <AvatarImage
-                    src={`https://api.dicebear.com/8.x/bottts-neutral/svg?seed=${user.uid}`}
+                    src={user.photoURL || `https://api.dicebear.com/8.x/bottts-neutral/svg?seed=${user.uid}`}
                   />
                   <AvatarFallback>
                     {user.displayName?.substring(0, 2) || 'G'}
@@ -43,7 +49,10 @@ export function Header() {
                 </span>
               </div>
             ) : (
-              <Button variant="outline">Sign In</Button>
+              <Button variant="outline" onClick={handleSignIn}>
+                <LogIn className="mr-2" />
+                Sign in with Google
+              </Button>
             )}
           </nav>
         </div>
