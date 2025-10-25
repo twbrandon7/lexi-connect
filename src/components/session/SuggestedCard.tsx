@@ -7,9 +7,9 @@ import { useToast } from '@/hooks/use-toast';
 import { suggestVocabularyCards } from '@/ai/flows/suggest-vocabulary-cards';
 import { generateAudioPronunciation } from '@/ai/flows/generate-audio-pronunciation';
 import { Loader2, PlusCircle } from 'lucide-react';
-import { collection } from 'firebase/firestore';
-import { useUser, useFirestore, addDocumentNonBlocking } from '@/firebase';
-import type { VocabularyCard } from '@/lib/types';
+import { collection, doc } from 'firebase/firestore';
+import { useUser, useFirestore, addDocumentNonBlocking, useFirebase } from '@/firebase';
+import type { VocabularyCard, Session } from '@/lib/types';
 
 type SuggestedCardProps = {
   word: string;
@@ -22,6 +22,7 @@ export function SuggestedCard({ word, sessionId, sessionLanguage }: SuggestedCar
   const { user } = useUser();
   const firestore = useFirestore();
   const [isAdding, setIsAdding] = useState(false);
+  const { auth } = useFirebase();
 
   const handleAddCard = async () => {
     if (!user) {
@@ -43,6 +44,12 @@ export function SuggestedCard({ word, sessionId, sessionLanguage }: SuggestedCar
 
     setIsAdding(true);
     try {
+      // 0. Determine if the session is public or private to find the correct collection
+      const publicSessionRef = doc(firestore, 'public_sessions', sessionId);
+      const publicSessionSnap = await publicSessionRef.get();
+      const isPublic = publicSessionSnap.exists();
+      const collectionName = isPublic ? 'public_sessions' : 'sessions';
+
       // 1. Get definition
       const suggestionResult = await suggestVocabularyCards({
         query: word,
@@ -59,18 +66,19 @@ export function SuggestedCard({ word, sessionId, sessionLanguage }: SuggestedCar
       const audioUrl = audioResult.media;
 
       // 3. Create card object
-      const vocabularyCardsCollection = collection(firestore, `sessions/${sessionId}/vocabularyCards`);
+      const vocabularyCardsCollection = collection(firestore, `${collectionName}/${sessionId}/vocabularyCards`);
       
       const newCard: Omit<VocabularyCard, 'id'> = {
-        word: cardData.word,
-        definition: cardData.definition,
-        audioUrl,
-        creator: {
-          id: user.uid,
-          name: user.isAnonymous ? `Guest-${user.uid.substring(0,4)}` : user.displayName || 'User',
-        },
+        wordOrPhrase: cardData.word,
+        primaryMeaning: cardData.definition,
+        audioPronunciationUrl: audioUrl,
+        creatorId: user.uid,
         createdAt: Date.now(),
         sessionId: sessionId,
+        partOfSpeech: '',
+        pronunciationIpa: '',
+        exampleSentence: '',
+        translation: '',
       };
 
       // 4. Save to Firebase

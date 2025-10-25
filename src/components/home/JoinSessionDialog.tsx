@@ -64,16 +64,27 @@ export function JoinSessionDialog({ open, onOpenChange }: JoinSessionDialogProps
 
     try {
       const sessionId = values.sessionId;
-      const sessionRef = doc(firestore, 'sessions', sessionId);
-      
-      const sessionSnap = await getDoc(sessionRef);
+      // Check in private sessions first
+      let sessionRef = doc(firestore, 'sessions', sessionId);
+      let sessionSnap = await getDoc(sessionRef);
+
       if (sessionSnap.exists()) {
         onOpenChange(false);
         router.push(`/sessions/${sessionId}`);
         return;
       }
 
-      // If it doesn't exist
+      // If not in private, check public sessions
+      sessionRef = doc(firestore, 'public_sessions', sessionId);
+      sessionSnap = await getDoc(sessionRef);
+
+      if (sessionSnap.exists()) {
+        onOpenChange(false);
+        router.push(`/sessions/${sessionId}`);
+        return;
+      }
+
+      // If it doesn't exist in either
       form.setError('sessionId', {
         type: 'manual',
         message: 'Session not found. Please check the ID and try again.',

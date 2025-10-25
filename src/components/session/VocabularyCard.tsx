@@ -49,9 +49,9 @@ export function VocabularyCard({ card }: VocabularyCardProps) {
       if (!isAlreadySaved) {
         bank.push({sessionId: card.sessionId, cardId: card.id});
         localStorage.setItem('lexiconnect_bank', JSON.stringify(bank));
-        toast({ title: "Saved!", description: `"${card.word}" was added to your personal bank.` });
+        toast({ title: "Saved!", description: `"${card.wordOrPhrase}" was added to your personal bank.` });
       } else {
-        toast({ title: "Already saved", description: `"${card.word}" is already in your bank.` });
+        toast({ title: "Already saved", description: `"${card.wordOrPhrase}" is already in your bank.` });
       }
 
       // Example of how you would save to a user's personal collection in Firestore
@@ -71,18 +71,18 @@ export function VocabularyCard({ card }: VocabularyCardProps) {
     <Card className="flex flex-col">
       <CardHeader>
         <div className="flex justify-between items-start gap-4">
-            <CardTitle>{card.word}</CardTitle>
-            {card.audioUrl && (
+            <CardTitle>{card.wordOrPhrase}</CardTitle>
+            {card.audioPronunciationUrl && (
                 <>
                     <Button variant="ghost" size="icon" onClick={playAudio}>
                         <Volume2 />
                         <span className="sr-only">Play pronunciation</span>
                     </Button>
-                    <audio ref={audioRef} src={card.audioUrl} className="hidden" />
+                    <audio ref={audioRef} src={card.audioPronunciationUrl} className="hidden" />
                 </>
             )}
         </div>
-        <CardDescription>{card.definition}</CardDescription>
+        <CardDescription>{card.primaryMeaning}</CardDescription>
       </CardHeader>
       <CardContent className="flex-grow">
         {card.exampleSentence && (
@@ -94,11 +94,11 @@ export function VocabularyCard({ card }: VocabularyCardProps) {
       <CardFooter className="flex justify-between items-center text-sm text-muted-foreground">
         <div className="flex items-center gap-2">
             <Avatar className="h-6 w-6">
-                <AvatarImage src={`https://api.dicebear.com/8.x/bottts-neutral/svg?seed=${card.creator.name}`} />
-                <AvatarFallback>{card.creator.name.substring(0, 1)}</AvatarFallback>
+                <AvatarImage src={`https://api.dicebear.com/8.x/bottts-neutral/svg?seed=${card.creatorId}`} />
+                <AvatarFallback>{card.creatorId.substring(0, 1)}</AvatarFallback>
             </Avatar>
             <div className='flex flex-col'>
-              <span className='font-medium'>{card.creator.name}</span>
+              <span className='font-medium'>{card.creatorId.substring(0, 6)}</span>
               <span className='text-xs'>{formatDistanceToNow(new Date(card.createdAt), { addSuffix: true })}</span>
             </div>
         </div>

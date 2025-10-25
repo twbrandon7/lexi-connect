@@ -9,16 +9,18 @@ import { Skeleton } from '@/components/ui/skeleton';
 
 type VocabularyListProps = {
   sessionId: string;
+  sessionVisibility: 'public' | 'private';
 };
 
-export function VocabularyList({ sessionId }: VocabularyListProps) {
+export function VocabularyList({ sessionId, sessionVisibility }: VocabularyListProps) {
   const firestore = useFirestore();
 
   const cardsQuery = useMemoFirebase(() => {
     if (!firestore || !sessionId) return null;
-    const cardsCollection = collection(firestore, `sessions/${sessionId}/vocabularyCards`);
+    const collectionName = sessionVisibility === 'public' ? 'public_sessions' : 'sessions';
+    const cardsCollection = collection(firestore, `${collectionName}/${sessionId}/vocabularyCards`);
     return query(cardsCollection, orderBy('createdAt', 'desc'));
-  }, [firestore, sessionId]);
+  }, [firestore, sessionId, sessionVisibility]);
 
   const { data: cards, isLoading } = useCollection<VocabularyCard>(cardsQuery);
 

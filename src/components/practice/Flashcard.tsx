@@ -20,7 +20,7 @@ export function Flashcard({ card }: FlashcardProps) {
         <div className="flashcard-front">
           <Card className="h-72 w-full flex items-center justify-center">
             <CardContent className="p-6 text-center">
-              <h2 className="text-4xl font-bold">{card.word}</h2>
+              <h2 className="text-4xl font-bold">{card.wordOrPhrase}</h2>
             </CardContent>
           </Card>
         </div>
@@ -28,7 +28,7 @@ export function Flashcard({ card }: FlashcardProps) {
         <div className="flashcard-back">
           <Card className="h-72 w-full">
              <CardContent className="p-6 h-full flex flex-col justify-center items-center text-center">
-              <p className="text-xl font-semibold mb-4">{card.definition}</p>
+              <p className="text-xl font-semibold mb-4">{card.primaryMeaning}</p>
               {card.exampleSentence && (
                 <blockquote className="text-muted-foreground italic">
                   "{card.exampleSentence}"

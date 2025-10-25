@@ -15,14 +15,14 @@ export interface Session {
 
 export interface VocabularyCard {
   id: string;
-  word: string;
-  definition: string;
-  partOfSpeech?: string;
-  pronunciation?: string; // IPA
-  audioUrl?: string; // base64 data URI
-  exampleSentence?: string;
-  translation?: string;
-  creator: User;
+  wordOrPhrase: string;
+  primaryMeaning: string;
+  partOfSpeech: string;
+  pronunciationIpa: string;
+  audioPronunciationUrl?: string;
+  exampleSentence: string;
+  translation: string;
+  creatorId: string;
   createdAt: number;
   sessionId: string;
 }

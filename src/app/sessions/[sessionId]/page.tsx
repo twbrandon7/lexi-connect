@@ -1,8 +1,8 @@
 'use client';
 
-import { use } from 'react';
-import { doc } from 'firebase/firestore';
-import { useDoc, useFirestore, useMemoFirebase } from '@/firebase';
+import { use, useEffect, useState } from 'react';
+import { doc, getDoc } from 'firebase/firestore';
+import { useFirestore } from '@/firebase';
 import type { Session } from '@/lib/types';
 import { VocabularyList } from '@/components/session/VocabularyList';
 import { AIQuery } from '@/components/session/AIQuery';
@@ -30,23 +30,12 @@ function SessionContent({ session, sessionId }: { session: Session; sessionId: s
         </div>
         <AIQuery sessionId={sessionId} sessionLanguage={session.motherLanguage} />
       </div>
-      <VocabularyList sessionId={sessionId} />
+      <VocabularyList sessionId={sessionId} sessionVisibility={session.visibility} />
     </div>
   );
 }
 
-export default function SessionPage({ params }: { params: Promise<{ sessionId: string }> }) {
-  const { sessionId } = use(params);
-  const firestore = useFirestore();
-
-  const sessionRef = useMemoFirebase(() => {
-    if (!firestore || !sessionId) return null;
-    return doc(firestore, 'sessions', sessionId);
-  }, [firestore, sessionId]);
-
-  const { data: session, isLoading, error } = useDoc<Session>(sessionRef);
-
-  if (isLoading) {
+function SessionSkeleton() {
     return (
       <div className="container mx-auto px-4 py-8 space-y-6">
         <Skeleton className="h-10 w-3/4" />
@@ -58,6 +47,64 @@ export default function SessionPage({ params }: { params: Promise<{ sessionId: s
         </div>
       </div>
     );
+}
+
+
+export default function SessionPage({ params }: { params: Promise<{ sessionId: string }> }) {
+  const { sessionId } = use(params);
+  const firestore = useFirestore();
+
+  const [session, setSession] = useState<Session | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+
+  useEffect(() => {
+    const fetchSession = async () => {
+      if (!firestore || !sessionId) {
+        setIsLoading(false);
+        return;
+      }
+      setIsLoading(true);
+
+      try {
+        // Try fetching from private sessions first
+        const privateRef = doc(firestore, 'sessions', sessionId);
+        let sessionSnap = await getDoc(privateRef);
+
+        if (sessionSnap.exists()) {
+          setSession({ id: sessionSnap.id, ...sessionSnap.data() } as Session);
+          setIsLoading(false);
+          return;
+        }
+
+        // If not found, try public sessions
+        const publicRef = doc(firestore, 'public_sessions', sessionId);
+        sessionSnap = await getDoc(publicRef);
+
+        if (sessionSnap.exists()) {
+          setSession({ id: sessionSnap.id, ...sessionSnap.data() } as Session);
+        } else {
+          // If it doesn't exist in either, it's not found
+          setSession(null);
+        }
+      } catch (e: any) {
+        console.error("Error fetching session:", e);
+        // We only set a critical error if it's NOT a permission error.
+        // Permission errors are expected when a non-owner tries to access a private session.
+        if (e.code !== 'permission-denied') {
+          setError(e);
+        }
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchSession();
+  }, [firestore, sessionId]);
+
+
+  if (isLoading) {
+    return <SessionSkeleton />;
   }
   
   if (session) {
