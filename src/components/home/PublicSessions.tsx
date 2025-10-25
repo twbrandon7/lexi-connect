@@ -1,14 +1,14 @@
 'use client';
 
-import { useMemo, useState, useEffect } from 'react';
-import { doc, getDoc, getDocs, collection, query, where, documentId, orderBy } from 'firebase/firestore';
-import { useFirestore, useDoc, useCollection, useMemoFirebase } from '@/firebase';
+import { useState, useEffect } from 'react';
+import { doc, getDocs, collection, query, where, documentId } from 'firebase/firestore';
+import { useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import type { Session } from '@/lib/types';
 import { SessionItem } from './SessionItem';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Card, CardContent, CardHeader } from '../ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Terminal } from 'lucide-react';
+import { Card, CardContent, CardHeader } from '../ui/card';
 
 export function PublicSessions() {
   const firestore = useFirestore();
@@ -27,6 +27,7 @@ export function PublicSessions() {
 
   // 3. Effect to fetch sessions based on the index
   useEffect(() => {
+    // Wait until the index is loaded and firestore is available
     if (isIndexLoading || !firestore) {
       setIsLoading(true);
       return;
@@ -40,6 +41,7 @@ export function PublicSessions() {
     
     const sessionIds = publicIndex?.sessionIds;
 
+    // If there are no public session IDs, we're done.
     if (!sessionIds || sessionIds.length === 0) {
       setSessions([]);
       setIsLoading(false);
@@ -49,13 +51,13 @@ export function PublicSessions() {
     const fetchSessions = async () => {
       try {
         const sessionsRef = collection(firestore, 'sessions');
-        // Firestore 'in' query is limited to 30 items. If more are needed, batching is required.
+        // Firestore 'in' query is limited to 30 items. We'll take the most recent 30.
         const q = query(sessionsRef, where(documentId(), 'in', sessionIds.slice(0, 30)));
         const querySnapshot = await getDocs(q);
         const fetchedSessions = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Session));
         
-        // Sort sessions by creation date, descending
-        fetchedSessions.sort((a, b) => b.createdAt - a.createdAt);
+        // Sort sessions by creation date, descending, as Firestore doesn't guarantee order with 'in' queries.
+        fetchedSessions.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
 
         setSessions(fetchedSessions);
       } catch (e: any) {
