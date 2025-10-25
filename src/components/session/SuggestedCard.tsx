@@ -7,9 +7,8 @@ import { useToast } from '@/hooks/use-toast';
 import { suggestVocabularyCards } from '@/ai/flows/suggest-vocabulary-cards';
 import { generateAudioPronunciation } from '@/ai/flows/generate-audio-pronunciation';
 import { Loader2, PlusCircle } from 'lucide-react';
-import { ref, push, set } from 'firebase/database';
-import { db } from '@/lib/firebase';
-import { useUser } from '@/hooks/useUser';
+import { collection } from 'firebase/firestore';
+import { useUser, useFirestore, addDocumentNonBlocking } from '@/firebase';
 import type { VocabularyCard } from '@/lib/types';
 
 type SuggestedCardProps = {
@@ -21,6 +20,7 @@ type SuggestedCardProps = {
 export function SuggestedCard({ word, sessionId, sessionLanguage }: SuggestedCardProps) {
   const { toast } = useToast();
   const { user } = useUser();
+  const firestore = useFirestore();
   const [isAdding, setIsAdding] = useState(false);
 
   const handleAddCard = async () => {
@@ -51,25 +51,22 @@ export function SuggestedCard({ word, sessionId, sessionLanguage }: SuggestedCar
       const audioUrl = audioResult.media;
 
       // 3. Create card object
-      const vocabularyCardsRef = ref(db, `sessions/${sessionId}/vocabulary`);
-      const newCardRef = push(vocabularyCardsRef);
-      const cardId = newCardRef.key;
-
-      if (!cardId) {
-        throw new Error('Could not create card ID.');
-      }
+      const vocabularyCardsCollection = collection(firestore, `sessions/${sessionId}/vocabulary`);
       
       const newCard: Omit<VocabularyCard, 'id'> = {
         word: cardData.word,
         definition: cardData.definition,
         audioUrl,
-        creator: user,
+        creator: {
+          id: user.uid,
+          name: user.isAnonymous ? `Guest-${user.uid.substring(0,4)}` : user.displayName || 'User',
+        },
         createdAt: Date.now(),
         sessionId: sessionId,
       };
 
       // 4. Save to Firebase
-      await set(newCardRef, newCard);
+      await addDocumentNonBlocking(vocabularyCardsCollection, newCard);
 
       toast({
         title: 'Card Added!',

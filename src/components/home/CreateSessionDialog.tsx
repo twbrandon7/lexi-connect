@@ -5,9 +5,8 @@ import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { ref, push, set } from 'firebase/database';
-import { db } from '@/lib/firebase';
-import { useUser } from '@/hooks/useUser';
+import { useUser, useFirestore, addDocumentNonBlocking } from '@/firebase';
+import { collection } from 'firebase/firestore';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -53,6 +52,7 @@ type CreateSessionDialogProps = {
 export function CreateSessionDialog({ open, onOpenChange }: CreateSessionDialogProps) {
   const router = useRouter();
   const { user } = useUser();
+  const firestore = useFirestore();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -76,24 +76,18 @@ export function CreateSessionDialog({ open, onOpenChange }: CreateSessionDialogP
     }
     setIsSubmitting(true);
     try {
-      const sessionsRef = ref(db, 'sessions');
-      const newSessionRef = push(sessionsRef);
-      const sessionId = newSessionRef.key;
-
-      if (!sessionId) {
-        throw new Error('Could not create session ID.');
-      }
-
       const newSession: Omit<Session, 'id'> = {
         name: values.name,
         motherLanguage: values.motherLanguage,
         visibility: values.visibility,
-        hostId: user.id,
+        hostId: user.uid,
         createdAt: Date.now(),
         participantCount: 1,
       };
 
-      await set(newSessionRef, newSession);
+      const sessionsCollection = collection(firestore, 'sessions');
+      const newSessionDoc = await addDocumentNonBlocking(sessionsCollection, newSession);
+
 
       toast({
         title: 'Session Created!',
@@ -101,7 +95,7 @@ export function CreateSessionDialog({ open, onOpenChange }: CreateSessionDialogP
       });
 
       onOpenChange(false);
-      router.push(`/sessions/${sessionId}`);
+      router.push(`/sessions/${newSessionDoc.id}`);
     } catch (error) {
       console.error('Failed to create session:', error);
       toast({

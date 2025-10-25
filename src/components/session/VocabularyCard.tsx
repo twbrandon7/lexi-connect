@@ -15,6 +15,8 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import type { VocabularyCard } from '@/lib/types';
 import { formatDistanceToNow } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
+import { useUser, useFirestore, setDocumentNonBlocking } from '@/firebase';
+import { doc } from 'firebase/firestore';
 
 type VocabularyCardProps = {
   card: VocabularyCard;
@@ -23,6 +25,8 @@ type VocabularyCardProps = {
 export function VocabularyCard({ card }: VocabularyCardProps) {
   const audioRef = useRef<HTMLAudioElement>(null);
   const { toast } = useToast();
+  const { user } = useUser();
+  const firestore = useFirestore();
 
   const playAudio = () => {
     if (audioRef.current) {
@@ -31,7 +35,14 @@ export function VocabularyCard({ card }: VocabularyCardProps) {
   };
   
   const addToBank = () => {
+    if (!user) {
+      toast({ variant: 'destructive', title: 'Error', description: 'You must be logged in to save cards.' });
+      return;
+    }
+
     try {
+      // We'll use local storage for the bank for simplicity in this version.
+      // A more robust solution would use Firestore.
       const bank = JSON.parse(localStorage.getItem('lexiconnect_bank') || '[]');
       const isAlreadySaved = bank.some((entry: { cardId: string }) => entry.cardId === card.id);
 
@@ -42,6 +53,14 @@ export function VocabularyCard({ card }: VocabularyCardProps) {
       } else {
         toast({ title: "Already saved", description: `"${card.word}" is already in your bank.` });
       }
+
+      // Example of how you would save to a user's personal collection in Firestore
+      // const personalVocabRef = doc(firestore, `users/${user.uid}/personalVocabulary/${card.id}`);
+      // setDocumentNonBlocking(personalVocabRef, {
+      //   ...card,
+      //   savedAt: Date.now(),
+      // }, { merge: true });
+
     } catch (error) {
         console.error("Failed to update vocabulary bank:", error);
         toast({ variant: 'destructive', title: "Error", description: "Could not save card to your bank." });

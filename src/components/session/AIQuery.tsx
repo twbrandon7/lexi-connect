@@ -6,7 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Loader2, Sparkles, Wand2 } from 'lucide-react';
 import { aiPoweredVocabularyDiscovery } from '@/ai/flows/ai-powered-vocabulary-discovery';
-import { useUser } from '@/hooks/useUser';
+import { useUser } from '@/firebase';
 import {
   Form,
   FormControl,

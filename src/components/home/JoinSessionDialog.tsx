@@ -24,8 +24,8 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { ref, get } from 'firebase/database';
-import { db } from '@/lib/firebase';
+import { getDoc, doc } from 'firebase/firestore';
+import { useFirestore } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 
@@ -40,6 +40,7 @@ type JoinSessionDialogProps = {
 
 export function JoinSessionDialog({ open, onOpenChange }: JoinSessionDialogProps) {
   const router = useRouter();
+  const firestore = useFirestore();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -53,8 +54,8 @@ export function JoinSessionDialog({ open, onOpenChange }: JoinSessionDialogProps
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsSubmitting(true);
     try {
-      const sessionRef = ref(db, `sessions/${values.sessionId}`);
-      const snapshot = await get(sessionRef);
+      const sessionRef = doc(firestore, `sessions/${values.sessionId}`);
+      const snapshot = await getDoc(sessionRef);
 
       if (snapshot.exists()) {
         onOpenChange(false);

@@ -1,8 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { get, ref } from 'firebase/database';
-import { db } from '@/lib/firebase';
+import { getDoc, doc } from 'firebase/firestore';
+import { useFirestore } from '@/firebase';
 import type { VocabularyCard as CardType } from '@/lib/types';
 import { VocabularyCard } from '@/components/session/VocabularyCard';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -15,6 +15,7 @@ type BankEntry = {
 };
 
 export default function MyBankPage() {
+  const firestore = useFirestore();
   const [savedCards, setSavedCards] = useState<CardType[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -27,15 +28,15 @@ export default function MyBankPage() {
       }
       
       const cardPromises = bankEntries.map(entry => 
-        get(ref(db, `sessions/${entry.sessionId}/vocabulary/${entry.cardId}`))
+        getDoc(doc(firestore, `sessions/${entry.sessionId}/vocabulary/${entry.cardId}`))
       );
 
       const cardSnapshots = await Promise.all(cardPromises);
       
       const cards: CardType[] = cardSnapshots
-        .map((snapshot, index) => {
+        .map((snapshot) => {
           if (snapshot.exists()) {
-            return { id: snapshot.key, ...snapshot.val() };
+            return { id: snapshot.id, ...snapshot.data() } as CardType;
           }
           return null;
         })
@@ -46,7 +47,7 @@ export default function MyBankPage() {
     };
 
     fetchSavedCards();
-  }, []);
+  }, [firestore]);
 
   return (
     <div className="container mx-auto px-4 py-8">

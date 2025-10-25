@@ -1,8 +1,8 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { ref, onValue } from 'firebase/database';
-import { db } from '@/lib/firebase';
+import { useState } from 'react';
+import { collection, query } from 'firebase/firestore';
+import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
 import type { VocabularyCard } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { FlashcardPractice } from '@/components/practice/FlashcardPractice';
@@ -12,21 +12,14 @@ import { ArrowLeft } from 'lucide-react';
 
 export default function PracticePage({ params }: { params: { sessionId: string } }) {
   const { sessionId } = params;
-  const [cards, setCards] = useState<VocabularyCard[]>([]);
-  const [loading, setLoading] = useState(true);
+  const firestore = useFirestore();
 
-  useEffect(() => {
-    const cardsRef = ref(db, `sessions/${sessionId}/vocabulary`);
-    const unsubscribe = onValue(cardsRef, (snapshot) => {
-      const data = snapshot.val();
-      if (data) {
-        const cardsList: VocabularyCard[] = Object.keys(data).map(key => ({ id: key, ...data[key] }));
-        setCards(cardsList);
-      }
-      setLoading(false);
-    });
-    return () => unsubscribe();
-  }, [sessionId]);
+  const cardsQuery = useMemoFirebase(() => {
+    if (!firestore || !sessionId) return null;
+    return query(collection(firestore, `sessions/${sessionId}/vocabulary`));
+  }, [firestore, sessionId]);
+
+  const { data: cards, isLoading } = useCollection<VocabularyCard>(cardsQuery);
 
   return (
     <div className="container mx-auto px-4 py-8 flex flex-col h-[calc(100vh-theme(spacing.14))]">
@@ -40,11 +33,11 @@ export default function PracticePage({ params }: { params: { sessionId: string }
         </Button>
       </div>
       
-      {loading ? (
+      {isLoading ? (
         <div className="flex-grow flex items-center justify-center">
             <Skeleton className="w-full max-w-lg h-72 rounded-lg" />
         </div>
-      ) : cards.length > 0 ? (
+      ) : cards && cards.length > 0 ? (
         <div className="flex-grow flex items-center justify-center">
           <FlashcardPractice cards={cards} />
         </div>

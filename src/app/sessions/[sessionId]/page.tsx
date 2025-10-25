@@ -1,8 +1,8 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { ref, onValue } from 'firebase/database';
-import { db } from '@/lib/firebase';
+import { useMemo } from 'react';
+import { doc } from 'firebase/firestore';
+import { useDoc, useFirestore, useMemoFirebase } from '@/firebase';
 import type { Session } from '@/lib/types';
 import { VocabularyList } from '@/components/session/VocabularyList';
 import { AIQuery } from '@/components/session/AIQuery';
@@ -15,34 +15,16 @@ import { Button } from '@/components/ui/button';
 
 export default function SessionPage({ params }: { params: { sessionId: string } }) {
   const { sessionId } = params;
-  const [session, setSession] = useState<Session | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const firestore = useFirestore();
 
-  useEffect(() => {
-    if (!sessionId) return;
-    setLoading(true);
-    const sessionRef = ref(db, `sessions/${sessionId}`);
+  const sessionRef = useMemoFirebase(() => {
+    if (!firestore || !sessionId) return null;
+    return doc(firestore, 'sessions', sessionId);
+  }, [firestore, sessionId]);
 
-    const unsubscribe = onValue(sessionRef, (snapshot) => {
-      if (snapshot.exists()) {
-        setSession({ id: snapshot.key, ...snapshot.val() });
-        setError(null);
-      } else {
-        setError('Session not found.');
-        setSession(null);
-      }
-      setLoading(false);
-    }, (err) => {
-      console.error(err);
-      setError('Failed to load session data.');
-      setLoading(false);
-    });
+  const { data: session, isLoading, error } = useDoc<Session>(sessionRef);
 
-    return () => unsubscribe();
-  }, [sessionId]);
-
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="container mx-auto px-4 py-8 space-y-6">
         <Skeleton className="h-10 w-3/4" />
@@ -62,14 +44,22 @@ export default function SessionPage({ params }: { params: { sessionId: string } 
         <Alert variant="destructive">
           <Terminal className="h-4 w-4" />
           <AlertTitle>Error</AlertTitle>
-          <AlertDescription>{error}</AlertDescription>
+          <AlertDescription>{error.message}</AlertDescription>
         </Alert>
       </div>
     );
   }
 
   if (!session) {
-    return null;
+     return (
+      <div className="container mx-auto px-4 py-8">
+        <Alert variant="destructive">
+          <Terminal className="h-4 w-4" />
+          <AlertTitle>Error</AlertTitle>
+          <AlertDescription>Session not found.</AlertDescription>
+        </Alert>
+      </div>
+    );
   }
 
   return (

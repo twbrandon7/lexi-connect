@@ -8,6 +8,7 @@ import React, {
   type ReactNode,
 } from 'react';
 import type { User } from '@/lib/types';
+import { useFirebase } from '@/firebase';
 
 interface UserContextType {
   user: User | null;
@@ -16,23 +17,33 @@ interface UserContextType {
 export const UserContext = createContext<UserContextType>({ user: null });
 
 export function UserProvider({ children }: { children: ReactNode }) {
+  const { auth } = useFirebase();
   const [user, setUser] = useState<User | null>(null);
 
   useEffect(() => {
-    let storedUser = localStorage.getItem('lexiconnect_user');
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
-    } else {
-      const guestNumber = Math.floor(1000 + Math.random() * 9000);
-      const newId = `user_${Date.now()}_${guestNumber}`;
-      const newUser: User = {
-        id: newId,
-        name: `Guest-${guestNumber}`,
-      };
-      localStorage.setItem('lexiconnect_user', JSON.stringify(newUser));
-      setUser(newUser);
-    }
-  }, []);
+    if (!auth) return;
+
+    const unsubscribe = auth.onAuthStateChanged((firebaseUser) => {
+      if (firebaseUser) {
+        const newUser: User = {
+          id: firebaseUser.uid,
+          name: firebaseUser.isAnonymous
+            ? `Guest-${firebaseUser.uid.substring(0, 4)}`
+            : firebaseUser.displayName || 'User',
+        };
+        setUser(newUser);
+        localStorage.setItem('lexiconnect_user', JSON.stringify(newUser));
+      } else {
+        // No user is signed in.
+        // For this app, we'll auto-sign-in an anonymous user.
+        auth.signInAnonymously().catch((error) => {
+          console.error('Anonymous sign-in failed:', error);
+        });
+      }
+    });
+
+    return () => unsubscribe();
+  }, [auth]);
 
   const value = useMemo(() => ({ user }), [user]);
 

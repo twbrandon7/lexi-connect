@@ -1,8 +1,8 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { ref, onValue } from 'firebase/database';
-import { db } from '@/lib/firebase';
+import { useMemo } from 'react';
+import { collection, query, orderBy } from 'firebase/firestore';
+import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
 import type { VocabularyCard } from '@/lib/types';
 import { VocabularyCard as VocabularyCardComponent } from './VocabularyCard';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -12,44 +12,28 @@ type VocabularyListProps = {
 };
 
 export function VocabularyList({ sessionId }: VocabularyListProps) {
-  const [cards, setCards] = useState<VocabularyCard[]>([]);
-  const [loading, setLoading] = useState(true);
+  const firestore = useFirestore();
 
-  useEffect(() => {
-    const cardsRef = ref(db, `sessions/${sessionId}/vocabulary`);
+  const cardsQuery = useMemoFirebase(() => {
+    if (!firestore || !sessionId) return null;
+    const cardsCollection = collection(firestore, `sessions/${sessionId}/vocabulary`);
+    return query(cardsCollection, orderBy('createdAt', 'desc'));
+  }, [firestore, sessionId]);
 
-    const unsubscribe = onValue(cardsRef, (snapshot) => {
-      const data = snapshot.val();
-      if (data) {
-        const cardsList: VocabularyCard[] = Object.keys(data).map((key) => ({
-          id: key,
-          ...data[key],
-        })).sort((a, b) => b.createdAt - a.createdAt);
-        setCards(cardsList);
-      } else {
-        setCards([]);
-      }
-      setLoading(false);
-    }, (error) => {
-      console.error(error);
-      setLoading(false);
-    });
-
-    return () => unsubscribe();
-  }, [sessionId]);
+  const { data: cards, isLoading } = useCollection<VocabularyCard>(cardsQuery);
 
   return (
     <section className="space-y-6">
       <h2 className="text-2xl md:text-3xl font-bold font-headline">
         Session Vocabulary
       </h2>
-      {loading ? (
+      {isLoading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {[...Array(3)].map((_, i) => (
             <Skeleton key={i} className="h-48 w-full rounded-lg" />
           ))}
         </div>
-      ) : cards.length > 0 ? (
+      ) : cards && cards.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {cards.map((card) => (
             <VocabularyCardComponent key={card.id} card={card} />
