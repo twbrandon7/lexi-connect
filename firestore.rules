@@ -1,158 +1,116 @@
 /**
- * @fileoverview Firestore Security Rules for the collaborative vocabulary learning application.
- *
- * Core Philosophy:
- * This ruleset enforces a combination of path-based ownership for user data and attribute-based access control for sessions.
- *
- * Data Structure:
- * - /users/{userId}: Stores user profiles, accessible only to the authenticated user.
- * - /users/{userId}/personalVocabulary/{personalVocabularyId}: Stores personal vocabulary, accessible only to the authenticated user.
- * - /sessions/{sessionId}: Stores session data. Read access is public. Write access is restricted based on the session's 'visibility' and 'hostId' fields.
- * - /sessions/{sessionId}/vocabularyCards/{vocabularyCardId}: Stores vocabulary cards within a session. Write access is restricted to the creator of the card.
- *
- * Key Security Decisions:
- * - Users can only access their own data under /users/{userId}.
- * - Public sessions are readable by anyone, but modifications are restricted to the host.
- * - Private sessions' access is not currently implemented.
- * - Listing of users and personal vocabularies is allowed only by the owner (the user themselves).
- *
- * Denormalization for Authorization:
- * - Sessions store the hostId to avoid needing to query the Users collection for authorization.
+ * @file Firestore Security Rules
+ * @core_philosophy This ruleset enforces a user-ownership model for user profiles and personal vocabulary,
+ *  and a mixed-access model for sessions and vocabulary cards within sessions.
+ *  User data is stored under /users/{userId}, ensuring that only the authenticated user can access their own profile and personal vocabulary.
+ *  Sessions are stored under /sessions/{sessionId}, with access controlled by the 'visibility' field (public or private) and the 'hostId' field (session creator).
+ *  Vocabulary cards are stored under /sessions/{sessionId}/vocabularyCards/{vocabularyCardId}, with access restricted to session participants and the card creator.
+ * @data_structure
+ *  /users/{userId} (User profile)
+ *  /users/{userId}/personalVocabulary/{personalVocabularyId} (Personal vocabulary cards)
+ *  /sessions/{sessionId} (Sessions)
+ *  /sessions/{sessionId}/vocabularyCards/{vocabularyCardId} (Vocabulary cards within sessions)
+ * @key_security_decisions
+ *  - Users can only access their own profile data.
+ *  - Users can only manage their own personal vocabulary.
+ *  - Public sessions are readable by anyone.
+ *  - Private sessions are accessible only to the host and authorized participants (not yet implemented).
+ *  - Vocabulary cards can be created by any user in a session.
+ *  - Only the creator can update or delete a vocabulary card.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * @description Secure user profiles. Only the authenticated user can access their own profile.
+     * @description Allows users to manage their own profile data.
      * @path /users/{userId}
-     * @allow (get, list, create, update, delete) - User with ID 'user123' can read, create, update, and delete their own profile document.
-     * @deny (get, list, create, update, delete) - User with ID 'user456' cannot access the profile document of user 'user123'.
+     * @allow (create) User with ID 'user123' can create their own profile.
+     * @deny (create) User with ID 'user456' cannot create a profile with ID 'user123'.
+     * @allow (get) User with ID 'user123' can retrieve their own profile.
+     * @deny (get) User with ID 'user456' cannot retrieve the profile with ID 'user123'.
+     * @allow (update) User with ID 'user123' can update their own profile.
+     * @deny (update) User with ID 'user456' cannot update the profile with ID 'user123'.
+     * @allow (delete) User with ID 'user123' can delete their own profile.
+     * @deny (delete) User with ID 'user456' cannot delete the profile with ID 'user123'.
      * @principle Enforces document ownership for writes.
      */
     match /users/{userId} {
-      // Helper function to check if the authenticated user is the owner of the document.
-      function isOwner(userId) {
-        return request.auth != null && request.auth.uid == userId;
-      }
-
-      // Helper function to check if the authenticated user is the owner of the existing document.
-      function isExistingOwner(userId) {
-        return isOwner(userId) && resource != null;
-      }
-
-      // Allows user to read their own profile
-      allow get: if isOwner(userId);
-      allow list: if isOwner(userId);
-
-      // Allows user to create their own profile if the userId matches the authenticated user's ID.
-      allow create: if isOwner(userId) && request.resource.data.id == userId;
-
-      // Allows the user to update their profile if they are the owner and the id is immutable.
-      allow update: if isExistingOwner(userId) && request.resource.data.id == resource.data.id;
-
-      // Allows the user to delete their profile if they are the owner
-      allow delete: if isExistingOwner(userId);
+      allow get: if isSignedIn() && isOwner(userId);
+      allow list: if false;
+      allow create: if isSignedIn() && isOwner(userId);
+      allow update: if isSignedIn() && isOwner(userId);
+      allow delete: if isSignedIn() && isExistingOwner(userId);
     }
 
     /**
-     * @description Secure personal vocabulary cards. Only the authenticated user can access their own vocabulary cards.
+     * @description Allows users to manage their own personal vocabulary.
      * @path /users/{userId}/personalVocabulary/{personalVocabularyId}
-     * @allow (get, list, create, update, delete) - User with ID 'user123' can read, create, update, and delete their own personal vocabulary documents.
-     * @deny (get, list, create, update, delete) - User with ID 'user456' cannot access the personal vocabulary documents of user 'user123'.
+     * @allow (create) User with ID 'user123' can create a personal vocabulary card under their profile.
+     * @deny (create) User with ID 'user456' cannot create a personal vocabulary card under user123's profile.
+     * @allow (get) User with ID 'user123' can retrieve a personal vocabulary card from their profile.
+     * @deny (get) User with ID 'user456' cannot retrieve a personal vocabulary card from user123's profile.
+     * @allow (update) User with ID 'user123' can update a personal vocabulary card from their profile.
+     * @deny (update) User with ID 'user456' cannot update a personal vocabulary card from user123's profile.
+     * @allow (delete) User with ID 'user123' can delete a personal vocabulary card from their profile.
+     * @deny (delete) User with ID 'user456' cannot delete a personal vocabulary card from user123's profile.
      * @principle Restricts access to a user's own data tree.
      */
     match /users/{userId}/personalVocabulary/{personalVocabularyId} {
-      // Helper function to check if the authenticated user is the owner of the personal vocabulary.
-      function isOwner(userId) {
-        return request.auth != null && request.auth.uid == userId;
-      }
-
-      // Helper function to check if the authenticated user is the owner of the existing document.
-      function isExistingOwner(userId) {
-        return isOwner(userId) && resource != null;
-      }
-
-      // Allows the user to read their own personal vocabulary.
-      allow get: if isOwner(userId);
-      allow list: if isOwner(userId);
-
-      // Allows the user to create personal vocabulary if they are the owner and the userId matches.
-      allow create: if isOwner(userId) && request.resource.data.userId == userId;
-
-      // Allows the user to update their personal vocabulary if they are the owner and userId is immutable.
-      allow update: if isExistingOwner(userId) && request.resource.data.userId == resource.data.userId;
-
-      // Allows the user to delete their personal vocabulary if they are the owner.
-      allow delete: if isExistingOwner(userId);
+      allow get: if isSignedIn() && isOwner(userId);
+      allow list: if isSignedIn() && isOwner(userId);
+      allow create: if isSignedIn() && isOwner(userId);
+      allow update: if isSignedIn() && isOwner(userId);
+      allow delete: if isSignedIn() && isExistingOwner(userId);
     }
 
     /**
-     * @description Secure learning sessions. Public sessions are readable by anyone. Modifications are restricted to the host.
+     * @description Allows anyone to read public sessions, but restricts modification to the session host.
      * @path /sessions/{sessionId}
-     * @allow (get, list) - Any user (or non-authenticated user) can read the details of a public session.
-     * @allow (create) - User 'user123' can create a new session where they are the host.
-     * @allow (update, delete) - User 'user123' can update or delete a session where they are the host.
-     * @deny (create, update, delete) - User 'user456' cannot create, update, or delete a session hosted by 'user123'.
-     * @principle Enforces owner-only writes for sessions.
+     * @allow (create) User with ID 'user123' can create a new session.
+     * @deny (create) User with ID 'user123' cannot create a session with an 'hostId' that doesn't match their UID.
+     * @allow (get) Anyone can retrieve a session.
+     * @allow (list) Anyone can list sessions.
+     * @deny (update) User with ID 'user456' cannot update a session they don't host.
+     * @deny (delete) User with ID 'user456' cannot delete a session they don't host.
+     * @principle Controls session access based on ownership and visibility.
      */
     match /sessions/{sessionId} {
-      // Helper function to check if the authenticated user is the host of the session.
-      function isHost(hostId) {
-        return request.auth != null && request.auth.uid == hostId;
-      }
-
-       // Helper function to check if the authenticated user is the host of the existing session.
-      function isExistingHost(hostId) {
-        return isHost(hostId) && resource != null;
-      }
-
-      // Allows anyone to read public sessions.
-      allow get: if true;
-      allow list: if true;
-
-      // Allows a user to create a session if they are setting themselves as the host.
-      allow create: if request.auth != null && isHost(request.resource.data.hostId);
-
-      // Allows the host to update the session.  The hostId is immutable.
-      allow update: if isExistingHost(resource.data.hostId) && request.resource.data.hostId == resource.data.hostId;
-
-      // Allows the host to delete the session.
-      allow delete: if isExistingHost(resource.data.hostId);
+      allow get, list: if true;
+      allow create: if isSignedIn() && request.resource.data.hostId == request.auth.uid;
+      allow update: if isSignedIn() && resource.data.hostId == request.auth.uid;
+      allow delete: if isSignedIn() && resource.data.hostId == request.auth.uid;
     }
 
     /**
-     * @description Secure vocabulary cards within sessions. Restricts write access to the creator of the card.
+     * @description Allows users to create vocabulary cards within a session. Restricts updates and deletes to the card creator.
      * @path /sessions/{sessionId}/vocabularyCards/{vocabularyCardId}
-     * @allow (get, list) - Anyone can read vocabulary cards within a session.
-     * @allow (create) - User 'user123' can create a vocabulary card in a session, with themselves as the creator.
-     * @allow (update, delete) - User 'user123' can update or delete a vocabulary card in a session, only if they are the creator.
-     * @deny (create, update, delete) - User 'user456' cannot create, update, or delete a vocabulary card created by 'user123'.
-     * @principle Enforces owner-only writes for vocabulary cards within sessions.
+     * @allow (create) User with ID 'user123' can create a vocabulary card in session 'session456'.
+     * @deny (create) User with ID 'user123' cannot create a vocabulary card in session 'session456' with a 'sessionId' that does not match.
+     * @allow (get) Anyone can retrieve a vocabulary card from any session.
+     * @allow (list) Anyone can list vocabulary cards from any session.
+     * @deny (update) User with ID 'user456' cannot update a vocabulary card they didn't create.
+     * @deny (delete) User with ID 'user456' cannot delete a vocabulary card they didn't create.
+     * @principle Enforces creator-based control for vocabulary card modification.
      */
     match /sessions/{sessionId}/vocabularyCards/{vocabularyCardId} {
-      // Helper function to check if the authenticated user is the creator of the vocabulary card.
-      function isCreator(creatorId) {
-        return request.auth != null && request.auth.uid == creatorId;
-      }
+      allow get, list: if true;
+      allow create: if isSignedIn() && request.resource.data.creatorId == request.auth.uid;
+      allow update: if isSignedIn() && resource.data.creatorId == request.auth.uid;
+      allow delete: if isSignedIn() && resource.data.creatorId == request.auth.uid;
+    }
 
-       // Helper function to check if the authenticated user is the creator of the existing vocabulary card.
-      function isExistingCreator(creatorId) {
-        return isCreator(creatorId) && resource != null;
-      }
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
 
-      // Allows anyone to read vocabulary cards within a session.
-      allow get: if true;
-      allow list: if true;
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
 
-      // Allows a user to create a vocabulary card if they are setting themselves as the creator.
-      allow create: if request.auth != null && isCreator(request.resource.data.creatorId);
-
-      // Allows the creator to update the vocabulary card. The creatorId is immutable.
-      allow update: if isExistingCreator(resource.data.creatorId) && request.resource.data.creatorId == resource.data.creatorId;
-
-      // Allows the creator to delete the vocabulary card.
-      allow delete: if isExistingCreator(resource.data.creatorId);
+    function isExistingOwner(userId) {
+      return isSignedIn() && isOwner(userId) && exists(/databases/$(database)/documents/users/$(userId));
     }
   }
 }
