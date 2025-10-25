@@ -76,8 +76,9 @@ export function CreateSessionDialog({ open, onOpenChange }: CreateSessionDialogP
     }
     setIsSubmitting(true);
     
-    const sessionsCollection = collection(firestore, 'sessions');
-    const newSessionRef = doc(sessionsCollection);
+    const isPublic = values.visibility === 'public';
+    const targetCollection = isPublic ? 'public_sessions' : 'sessions';
+    const newSessionRef = doc(collection(firestore, targetCollection));
 
     const newSession: Session = {
       id: newSessionRef.id,
@@ -88,13 +89,8 @@ export function CreateSessionDialog({ open, onOpenChange }: CreateSessionDialogP
       createdAt: Date.now(),
       participantCount: 1,
     };
-
+    
     setDocumentNonBlocking(newSessionRef, newSession, {});
-
-    if (values.visibility === 'public') {
-      const publicSessionRef = doc(firestore, 'public_sessions', newSession.id);
-      setDocumentNonBlocking(publicSessionRef, newSession, {});
-    }
 
     toast({
       title: 'Session Created!',
