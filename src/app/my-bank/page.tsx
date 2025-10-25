@@ -21,6 +21,7 @@ export default function MyBankPage() {
 
   useEffect(() => {
     const fetchSavedCards = async () => {
+      if (!firestore) return;
       const bankEntries: BankEntry[] = JSON.parse(localStorage.getItem('lexiconnect_bank') || '[]');
       if (bankEntries.length === 0) {
         setLoading(false);
@@ -28,7 +29,7 @@ export default function MyBankPage() {
       }
       
       const cardPromises = bankEntries.map(entry => 
-        getDoc(doc(firestore, `sessions/${entry.sessionId}/vocabulary/${entry.cardId}`))
+        getDoc(doc(firestore, `sessions/${entry.sessionId}/vocabularyCards/${entry.cardId}`))
       );
 
       const cardSnapshots = await Promise.all(cardPromises);

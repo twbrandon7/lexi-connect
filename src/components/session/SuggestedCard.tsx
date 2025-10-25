@@ -32,6 +32,14 @@ export function SuggestedCard({ word, sessionId, sessionLanguage }: SuggestedCar
       });
       return;
     }
+    if (!firestore) {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Database not available. Please try again later.',
+      });
+      return;
+    }
 
     setIsAdding(true);
     try {
@@ -51,7 +59,7 @@ export function SuggestedCard({ word, sessionId, sessionLanguage }: SuggestedCar
       const audioUrl = audioResult.media;
 
       // 3. Create card object
-      const vocabularyCardsCollection = collection(firestore, `sessions/${sessionId}/vocabulary`);
+      const vocabularyCardsCollection = collection(firestore, `sessions/${sessionId}/vocabularyCards`);
       
       const newCard: Omit<VocabularyCard, 'id'> = {
         word: cardData.word,

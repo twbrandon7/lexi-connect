@@ -16,7 +16,7 @@ export function VocabularyList({ sessionId }: VocabularyListProps) {
 
   const cardsQuery = useMemoFirebase(() => {
     if (!firestore || !sessionId) return null;
-    const cardsCollection = collection(firestore, `sessions/${sessionId}/vocabulary`);
+    const cardsCollection = collection(firestore, `sessions/${sessionId}/vocabularyCards`);
     return query(cardsCollection, orderBy('createdAt', 'desc'));
   }, [firestore, sessionId]);
 

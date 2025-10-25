@@ -16,7 +16,7 @@ export default function PracticePage({ params }: { params: { sessionId: string }
 
   const cardsQuery = useMemoFirebase(() => {
     if (!firestore || !sessionId) return null;
-    return query(collection(firestore, `sessions/${sessionId}/vocabulary`));
+    return query(collection(firestore, `sessions/${sessionId}/vocabularyCards`));
   }, [firestore, sessionId]);
 
   const { data: cards, isLoading } = useCollection<VocabularyCard>(cardsQuery);
