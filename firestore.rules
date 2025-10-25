@@ -1,0 +1,187 @@
+/**
+ * @fileoverview Firestore Security Rules for the collaborative vocabulary learning application.
+ *
+ * Core Philosophy:
+ * This ruleset enforces a strict user-ownership model for personal data and a shared-access model for collaborative sessions.
+ * Data is segregated into private user-owned data and public/shared session data for efficient authorization and list operations.
+ *
+ * Data Structure:
+ * - /users/{userId}: Stores user profiles. Only the authenticated user can access their own profile.
+ * - /users/{userId}/personalVocabulary/{personalVocabularyId}: Stores user-specific vocabulary. Only the authenticated user can access their own vocabulary.
+ * - /users/{userId}/sessions/{sessionId}: Stores private sessions created by the user. Only the host user can access the session.
+ * - /public_sessions/{sessionId}: Stores public sessions. Accessible to all users.
+ * - /sessions/{sessionId}/vocabularyCards/{vocabularyCardId}: Stores vocabulary cards within a session. Access is based on session membership.
+ *
+ * Key Security Decisions:
+ * - User listing is disallowed.
+ * - Public sessions are stored in a separate collection for public read access.
+ * - Data validation is minimal in this prototyping phase, focusing on ownership and relational integrity.
+ *
+ * Denormalization for Authorization:
+ * - The `public_sessions` collection denormalizes the `hostId` to allow efficient querying and authorization without needing to query the `/users` collection.
+ */
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    /**
+     * @description Enforces user-ownership for user profiles.
+     * @path /users/{userId}
+     * @allow (create) User A can create their own profile if request.auth.uid == userId.
+     * @allow (get) User A can read their own profile if request.auth.uid == userId.
+     * @allow (update) User A can update their own profile if request.auth.uid == userId.
+     * @allow (delete) User A can delete their own profile if request.auth.uid == userId.
+     * @deny (create) User A cannot create a profile for User B if request.auth.uid != userId.
+     * @deny (get) User A cannot read User B's profile if request.auth.uid != userId.
+     * @deny (update) User A cannot update User B's profile if request.auth.uid != userId.
+     * @deny (delete) User A cannot delete User B's profile if request.auth.uid != userId.
+     * @principle Enforces document ownership for writes.
+     */
+    match /users/{userId} {
+      function isSignedIn() {
+        return request.auth != null;
+      }
+
+      function isOwner(userId) {
+        return request.auth.uid == userId;
+      }
+
+      function isExistingOwner(userId) {
+        return isOwner(userId) && resource != null;
+      }
+
+      allow get: if isOwner(userId);
+      allow list: if false; // User listing is not allowed.
+      allow create: if isOwner(userId) && request.resource.data.id == userId;
+      allow update: if isExistingOwner(userId) && request.resource.data.id == resource.data.id;
+      allow delete: if isExistingOwner(userId);
+    }
+
+    /**
+     * @description Enforces user-ownership for personal vocabulary cards.
+     * @path /users/{userId}/personalVocabulary/{personalVocabularyId}
+     * @allow (create) User A can create a vocabulary card in their own personal vocabulary if request.auth.uid == userId.
+     * @allow (get) User A can read a vocabulary card in their own personal vocabulary if request.auth.uid == userId.
+     * @allow (update) User A can update a vocabulary card in their own personal vocabulary if request.auth.uid == userId.
+     * @allow (delete) User A can delete a vocabulary card in their own personal vocabulary if request.auth.uid == userId.
+     * @deny (create) User A cannot create a vocabulary card in User B's personal vocabulary if request.auth.uid != userId.
+     * @deny (get) User A cannot read a vocabulary card in User B's personal vocabulary if request.auth.uid != userId.
+     * @deny (update) User A cannot update a vocabulary card in User B's personal vocabulary if request.auth.uid != userId.
+     * @deny (delete) User A cannot delete a vocabulary card in User B's personal vocabulary if request.auth.uid != userId.
+     * @principle Restricts access to a user's own data tree.
+     */
+    match /users/{userId}/personalVocabulary/{personalVocabularyId} {
+      function isSignedIn() {
+        return request.auth != null;
+      }
+
+      function isOwner(userId) {
+        return request.auth.uid == userId;
+      }
+
+       function isExistingOwner(userId) {
+        return isOwner(userId) && resource != null;
+      }
+
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+      allow create: if isOwner(userId) && request.resource.data.userId == userId;
+      allow update: if isExistingOwner(userId) && request.resource.data.userId == resource.data.userId;
+      allow delete: if isExistingOwner(userId);
+    }
+
+    /**
+     * @description Enforces user-ownership for private sessions.
+     * @path /users/{userId}/sessions/{sessionId}
+     * @allow (create) User A can create a session under their userId.
+     * @allow (get) User A can get a session under their userId.
+     * @allow (update) User A can update a session under their userId.
+     * @allow (delete) User A can delete a session under their userId.
+     * @deny (create) User A cannot create a session under User B's userId.
+     * @deny (get) User A cannot get a session under User B's userId.
+     * @deny (update) User A cannot update a session under User B's userId.
+     * @deny (delete) User A cannot delete a session under User B's userId.
+     * @principle Restricts access to a user's own data tree.
+     */
+    match /users/{userId}/sessions/{sessionId} {
+      function isSignedIn() {
+        return request.auth != null;
+      }
+
+      function isOwner(userId) {
+        return request.auth.uid == userId;
+      }
+
+      function isExistingOwner(userId) {
+        return isOwner(userId) && resource != null;
+      }
+
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+      allow create: if isOwner(userId) && request.resource.data.hostId == userId;
+      allow update: if isExistingOwner(userId) && request.resource.data.hostId == resource.data.hostId;
+      allow delete: if isExistingOwner(userId);
+    }
+
+    /**
+     * @description Allows public read access to public sessions, but restricts write access to ensure that only valid public sessions are created.
+     * @path /public_sessions/{sessionId}
+     * @allow (get) Any user can read a public session.
+     * @allow (list) Any user can list public sessions.
+     * @allow (create) User A can create a public session if the visibility is public and hostId matches the auth uid.
+     * @allow (update) User A can update a public session if the visibility is public and hostId matches the auth uid.
+     * @allow (delete) User A can delete a public session if the visibility is public and hostId matches the auth uid.
+     * @deny (create) User A cannot create a public session if the visibility is not public.
+     * @deny (update) User A cannot update a public session if the visibility is not public.
+     * @deny (delete) User A cannot delete a public session if the visibility is not public.
+     * @principle Public read with owner-only writes.
+     */
+    match /public_sessions/{sessionId} {
+      function isSignedIn() {
+        return request.auth != null;
+      }
+
+      function isOwner(hostId) {
+        return request.auth.uid == hostId;
+      }
+
+      function isExistingOwner(hostId) {
+        return isOwner(hostId) && resource != null;
+      }
+      allow get: if true;
+      allow list: if true;
+      allow create: if isSignedIn() && request.resource.data.visibility == 'public' && request.resource.data.hostId == request.auth.uid;
+      allow update: if isExistingOwner(resource.data.hostId) && request.resource.data.visibility == 'public' && request.resource.data.hostId == resource.data.hostId;
+      allow delete: if isExistingOwner(resource.data.hostId) && request.resource.data.visibility == 'public';
+    }
+
+    /**
+     * @description Restricts access to vocabulary cards within a session.
+     * @path /sessions/{sessionId}/vocabularyCards/{vocabularyCardId}
+     * @allow (get) Any user can read a vocabulary card within a session (assuming session is public).
+     * @allow (list) Any user can list vocabulary cards within a session (assuming session is public).
+     * @allow (create) Any signed-in user can create a vocabulary card within a session.
+     * @allow (update) The creator can update a vocabulary card within a session.
+     * @allow (delete) The creator can delete a vocabulary card within a session.
+     * @principle Enforces creator-based ownership for vocabulary cards within public sessions.
+     */
+    match /sessions/{sessionId}/vocabularyCards/{vocabularyCardId} {
+      function isSignedIn() {
+        return request.auth != null;
+      }
+
+      function isCreator(creatorId) {
+        return request.auth.uid == creatorId;
+      }
+
+      function isExistingCreator(creatorId) {
+        return isCreator(creatorId) && resource != null;
+      }
+      allow get: if true;
+      allow list: if true;
+      allow create: if isSignedIn() && request.resource.data.creatorId == request.auth.uid && request.resource.data.sessionId == sessionId;
+      allow update: if isExistingCreator(resource.data.creatorId) && request.resource.data.creatorId == resource.data.creatorId;
+      allow delete: if isExistingCreator(resource.data.creatorId);
+    }
+  }
+}

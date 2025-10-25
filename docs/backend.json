@@ -1,0 +1,280 @@
+{
+  "entities": {
+    "Session": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Session",
+      "type": "object",
+      "description": "Represents a collaborative learning session.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the session."
+        },
+        "hostId": {
+          "type": "string",
+          "description": "Reference to the User who created the session. (Relationship: User 1:N Session)"
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the session."
+        },
+        "visibility": {
+          "type": "string",
+          "description": "The visibility setting of the session (public or private).",
+          "format": "string"
+        },
+        "motherLanguage": {
+          "type": "string",
+          "description": "The mother language selected for the session, affecting AI responses and vocabulary translations."
+        },
+        "state": {
+          "type": "string",
+          "description": "The current state of the session (open, closed, reopened)."
+        }
+      },
+      "required": [
+        "id",
+        "hostId",
+        "name",
+        "visibility",
+        "motherLanguage",
+        "state"
+      ]
+    },
+    "VocabularyCard": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "VocabularyCard",
+      "type": "object",
+      "description": "Represents a vocabulary card within a session.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the vocabulary card."
+        },
+        "sessionId": {
+          "type": "string",
+          "description": "Reference to the Session this card belongs to. (Relationship: Session 1:N VocabularyCard)"
+        },
+        "creatorId": {
+          "type": "string",
+          "description": "Reference to the User who created the card. (Relationship: User 1:N VocabularyCard)"
+        },
+        "wordOrPhrase": {
+          "type": "string",
+          "description": "The word or phrase on the card (English)."
+        },
+        "primaryMeaning": {
+          "type": "string",
+          "description": "The primary meaning of the word/phrase (context-specific)."
+        },
+        "partOfSpeech": {
+          "type": "string",
+          "description": "The part of speech (noun, verb, adjective, etc.)."
+        },
+        "grammaticalDetails": {
+          "type": "string",
+          "description": "Additional grammatical details (countable/uncountable, vt/vi, etc.)."
+        },
+        "pronunciationIpa": {
+          "type": "string",
+          "description": "Pronunciation in IPA notation."
+        },
+        "audioPronunciationUrl": {
+          "type": "string",
+          "description": "URL to the audio pronunciation (US accent).",
+          "format": "uri"
+        },
+        "exampleSentence": {
+          "type": "string",
+          "description": "Example sentence for the word/phrase."
+        },
+        "translation": {
+          "type": "string",
+          "description": "Translation of the word/phrase in the session's mother language."
+        },
+        "relatedCardIds": {
+          "type": "array",
+          "description": "References to other VocabularyCards that are related to this card. (Relationship: VocabularyCard N:N VocabularyCard)",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "id",
+        "sessionId",
+        "creatorId",
+        "wordOrPhrase",
+        "primaryMeaning",
+        "partOfSpeech",
+        "pronunciationIpa",
+        "audioPronunciationUrl",
+        "exampleSentence",
+        "translation"
+      ]
+    },
+    "User": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "User",
+      "type": "object",
+      "description": "Represents a user of the application.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the user."
+        },
+        "email": {
+          "type": "string",
+          "description": "User's email address.",
+          "format": "email"
+        },
+        "name": {
+          "type": "string",
+          "description": "User's display name."
+        }
+      },
+      "required": [
+        "id",
+        "email",
+        "name"
+      ]
+    },
+    "PersonalVocabulary": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "PersonalVocabulary",
+      "type": "object",
+      "description": "Represents a user's personal collection of vocabulary cards.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the personal vocabulary entry."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to the User who owns this personal vocabulary. (Relationship: User 1:N PersonalVocabulary)"
+        },
+        "vocabularyCardId": {
+          "type": "string",
+          "description": "Reference to the VocabularyCard that is saved in the personal vocabulary. (Relationship: VocabularyCard 1:N PersonalVocabulary)"
+        },
+        "mastered": {
+          "type": "boolean",
+          "description": "Indicates whether the user has mastered this vocabulary card."
+        },
+        "difficultyLevel": {
+          "type": "string",
+          "description": "Difficulty level assigned by the user (beginner, intermediate, advanced)."
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "vocabularyCardId",
+        "mastered"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/users/{userId}",
+        "definition": {
+          "entityName": "User",
+          "schema": {
+            "$ref": "#/backend/entities/User"
+          },
+          "description": "Collection for storing user profiles.  Path-based ownership ensures that only the authenticated user can access their own profile.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier for the user."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/personalVocabulary/{personalVocabularyId}",
+        "definition": {
+          "entityName": "PersonalVocabulary",
+          "schema": {
+            "$ref": "#/backend/entities/PersonalVocabulary"
+          },
+          "description": "Collection for storing a user's personal vocabulary cards. Path-based ownership ensures that only the user can manage their own vocabulary.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier for the user."
+            },
+            {
+              "name": "personalVocabularyId",
+              "description": "The unique identifier for the personal vocabulary entry."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/sessions/{sessionId}",
+        "definition": {
+          "entityName": "Session",
+          "schema": {
+            "$ref": "#/backend/entities/Session"
+          },
+          "description": "Collection for storing sessions created by a specific user. Visibility is controlled by storing public sessions in a separate collection.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier for the user (session host)."
+            },
+            {
+              "name": "sessionId",
+              "description": "The unique identifier for the session."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/public_sessions/{sessionId}",
+        "definition": {
+          "entityName": "Session",
+          "schema": {
+            "$ref": "#/backend/entities/Session"
+          },
+          "description": "Collection for storing public sessions.  Accessible to all users. Includes denormalized 'hostId' field for efficient querying and authorization.  The security rules will ensure that only sessions with 'visibility' set to 'public' can be stored here.",
+          "params": [
+            {
+              "name": "sessionId",
+              "description": "The unique identifier for the public session."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/sessions/{sessionId}/vocabularyCards/{vocabularyCardId}",
+        "definition": {
+          "entityName": "VocabularyCard",
+          "schema": {
+            "$ref": "#/backend/entities/VocabularyCard"
+          },
+          "description": "Collection for storing vocabulary cards within a session. Requires `sessionId` and stores user id who has created the card `creatorId`.",
+          "params": [
+            {
+              "name": "sessionId",
+              "description": "The unique identifier for the session."
+            },
+            {
+              "name": "vocabularyCardId",
+              "description": "The unique identifier for the vocabulary card."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The Firestore structure is designed to support a collaborative vocabulary learning application with AI-powered features. It prioritizes authorization independence and secure list operations by denormalizing data and segregating collections based on access needs.  User-owned data is stored under `/users/{userId}` paths. Collaborative session data and vocabulary cards are stored separately to allow for different security rules and QAPs. The design uses path-based ownership and membership maps for clear authorization.  Specifically, ownership is enforced at `/users/{userId}` and session membership is managed by a denormalized `members` map within each session document. This eliminates the need for `get()` calls in the security rules, enabling atomic operations. Public vs Private Sessions are segregated to `/public_sessions` and `/users/{userId}/private_sessions`, respectively, enabling secure `list` operations based on user ID and session visibility. This structure also supports invariants by enforcing consistent ownership and timestamps through security rules."
+  }
+}
