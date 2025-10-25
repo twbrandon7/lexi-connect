@@ -6,7 +6,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useUser, useFirestore, setDocumentNonBlocking } from '@/firebase';
-import { collection, doc, updateDoc, arrayUnion, writeBatch } from 'firebase/firestore';
+import { collection, doc } from 'firebase/firestore';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -79,7 +79,6 @@ export function CreateSessionDialog({ open, onOpenChange }: CreateSessionDialogP
     const newSessionRef = doc(collection(firestore, 'sessions'));
 
     try {
-      
       const newSession: Session = {
         id: newSessionRef.id,
         name: values.name,
@@ -90,24 +89,7 @@ export function CreateSessionDialog({ open, onOpenChange }: CreateSessionDialogP
         participantCount: 1,
       };
 
-      const batch = writeBatch(firestore);
-
-      // 1. Set the session document
-      batch.set(newSessionRef, newSession);
-
-      // 2. If public, add its ID to the public index
-      if (values.visibility === 'public') {
-        const publicIndexRef = doc(firestore, 'public', 'sessions');
-        // Use update with arrayUnion. If the doc doesn't exist, this will fail.
-        // We handle this failure in the catch block by creating the doc.
-        batch.update(publicIndexRef, {
-            sessionIds: arrayUnion(newSession.id)
-        });
-      }
-
-      // 3. Commit the batch
-      await batch.commit();
-
+      setDocumentNonBlocking(newSessionRef, newSession, {});
 
       toast({
         title: 'Session Created!',
@@ -119,48 +101,11 @@ export function CreateSessionDialog({ open, onOpenChange }: CreateSessionDialogP
 
     } catch (error: any) {
       console.error('Failed to create session:', error);
-      // Special handling for the case where the public index doc doesn't exist yet
-      if (error.code === 'not-found' && values.visibility === 'public') {
-         try {
-            const publicIndexRef = doc(firestore, 'public', 'sessions');
-            const sessionDocRef = doc(firestore, 'sessions', newSessionRef.id);
-            
-            const newSessionPayload: Session = {
-              id: newSessionRef.id,
-              name: values.name,
-              motherLanguage: values.motherLanguage,
-              visibility: values.visibility,
-              hostId: user.uid,
-              createdAt: Date.now(),
-              participantCount: 1,
-            };
-
-            const creationBatch = writeBatch(firestore);
-            creationBatch.set(sessionDocRef, newSessionPayload);
-            creationBatch.set(publicIndexRef, { sessionIds: [newSessionRef.id] });
-            await creationBatch.commit();
-
-            toast({
-                title: 'Session Created!',
-                description: `Your new session "${values.name}" is ready.`,
-            });
-            onOpenChange(false);
-            router.push(`/sessions/${newSessionRef.id}`);
-         } catch (initError) {
-             console.error('Failed to initialize public session index:', initError);
-             toast({
-                variant: 'destructive',
-                title: 'Failed to Create Session',
-                description: 'Could not initialize public session list.',
-             });
-         }
-      } else {
-        toast({
-            variant: 'destructive',
-            title: 'Failed to Create Session',
-            description: (error as Error).message || 'An unexpected error occurred.',
-        });
-      }
+      toast({
+        variant: 'destructive',
+        title: 'Failed to Create Session',
+        description: (error as Error).message || 'An unexpected error occurred.',
+      });
     } finally {
       setIsSubmitting(false);
     }

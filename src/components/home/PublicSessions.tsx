@@ -1,7 +1,7 @@
 'use client';
 
-import { doc, query, where, documentId, collection } from 'firebase/firestore';
-import { useDoc, useCollection, useFirestore, useMemoFirebase } from '@/firebase';
+import { collection, query, where, orderBy } from 'firebase/firestore';
+import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
 import type { Session } from '@/lib/types';
 import { PublicSessionsList } from './PublicSessionsList';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -9,30 +9,18 @@ import { Skeleton } from '@/components/ui/skeleton';
 export function PublicSessions() {
   const firestore = useFirestore();
 
-  // 1. Fetch the public session index document
-  const publicIndexRef = useMemoFirebase(
-    () => (firestore ? doc(firestore, 'public/sessions') : null),
-    [firestore]
-  );
-  const { data: publicIndex, isLoading: isLoadingIndex } = useDoc<{ sessionIds: string[] }>(publicIndexRef);
-
-  const publicSessionIds = publicIndex?.sessionIds;
-
-  // 2. Fetch the actual session documents based on the IDs from the index
   const sessionsQuery = useMemoFirebase(() => {
-    if (!firestore || !publicSessionIds || publicSessionIds.length === 0) {
-      return null;
-    }
+    if (!firestore) return null;
+    
     const sessionsCollection = collection(firestore, 'sessions');
-    // Firestore 'in' queries are limited to 30 elements.
-    // For this app, we'll assume we won't exceed that.
-    // For a production app with more items, pagination or multiple queries would be needed.
-    return query(sessionsCollection, where(documentId(), 'in', publicSessionIds.slice(0, 30)));
-  }, [firestore, publicSessionIds]);
+    return query(
+      sessionsCollection, 
+      where('visibility', '==', 'public'),
+      orderBy('createdAt', 'desc')
+    );
+  }, [firestore]);
 
-  const { data: sessions, isLoading: isLoadingSessions } = useCollection<Session>(sessionsQuery);
-
-  const isLoading = isLoadingIndex || (publicSessionIds && publicSessionIds.length > 0 && isLoadingSessions);
+  const { data: sessions, isLoading } = useCollection<Session>(sessionsQuery);
   
   return (
     <div className="space-y-8">
