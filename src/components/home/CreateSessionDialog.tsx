@@ -6,7 +6,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useUser, useFirestore, setDocumentNonBlocking } from '@/firebase';
-import { collection, doc } from 'firebase/firestore';
+import { collection, doc, writeBatch, arrayUnion } from 'firebase/firestore';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -75,8 +75,9 @@ export function CreateSessionDialog({ open, onOpenChange }: CreateSessionDialogP
       return;
     }
     setIsSubmitting(true);
-    
-    const collectionName = values.visibility === 'public' ? 'public_sessions' : 'sessions';
+
+    const isPublic = values.visibility === 'public';
+    const collectionName = isPublic ? 'public_sessions' : 'sessions';
     const newSessionRef = doc(collection(firestore, collectionName));
 
     const newSession: Session = {
@@ -88,17 +89,44 @@ export function CreateSessionDialog({ open, onOpenChange }: CreateSessionDialogP
       createdAt: Date.now(),
       participantCount: 1,
     };
-    
-    setDocumentNonBlocking(newSessionRef, newSession, {});
 
-    toast({
-      title: 'Session Created!',
-      description: `Your new session "${values.name}" is ready.`,
-    });
+    try {
+      if (isPublic) {
+        // For public sessions, we use a batch write to create the session
+        // and update the public index in a single atomic operation.
+        const batch = writeBatch(firestore);
+        const publicIndexRef = doc(firestore, 'public', 'sessions');
 
-    onOpenChange(false);
-    setIsSubmitting(false);
-    router.push(`/sessions/${newSession.id}`);
+        batch.set(newSessionRef, newSession);
+        batch.set(publicIndexRef, {
+            sessionIds: arrayUnion(newSession.id)
+        }, { merge: true });
+
+        await batch.commit();
+
+      } else {
+        // For private sessions, we can just set the document directly.
+        setDocumentNonBlocking(newSessionRef, newSession, {});
+      }
+
+      toast({
+        title: 'Session Created!',
+        description: `Your new session "${values.name}" is ready.`,
+      });
+
+      onOpenChange(false);
+      router.push(`/sessions/${newSession.id}`);
+
+    } catch (error) {
+      console.error('Failed to create session:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Failed to Create Session',
+        description: (error as Error).message || 'An unexpected error occurred.',
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   return (

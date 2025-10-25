@@ -1,8 +1,8 @@
 'use client';
 
-import { query, orderBy, limit } from 'firebase/firestore';
-import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
-import { collection } from 'firebase/firestore';
+import { useEffect, useState } from 'react';
+import { doc, getDoc, getDocs, collection, query, where } from 'firebase/firestore';
+import { useFirestore } from '@/firebase';
 import type { Session } from '@/lib/types';
 import { SessionItem } from './SessionItem';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -10,19 +10,51 @@ import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 
 export function PublicSessions() {
   const firestore = useFirestore();
+  const [sessions, setSessions] = useState<Session[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const sessionsQuery = useMemoFirebase(() => {
-    if (!firestore) return null;
-    // Query the public_sessions collection instead
-    const sessionsCollection = collection(firestore, 'public_sessions');
-    return query(
-      sessionsCollection,
-      orderBy('createdAt', 'desc'),
-      limit(20)
-    );
+  useEffect(() => {
+    const fetchPublicSessions = async () => {
+      if (!firestore) return;
+      setIsLoading(true);
+
+      try {
+        const publicIndexRef = doc(firestore, 'public', 'sessions');
+        const publicIndexSnap = await getDoc(publicIndexRef);
+
+        if (publicIndexSnap.exists()) {
+          const publicSessionIds = publicIndexSnap.data().sessionIds || [];
+          
+          if (publicSessionIds.length > 0) {
+            // Fetch the session documents based on the IDs
+            const sessionsRef = collection(firestore, 'public_sessions');
+            // Firestore 'in' query is limited to 30 items. 
+            // If you expect more, you'll need to batch the requests.
+            const q = query(sessionsRef, where('id', 'in', publicSessionIds.slice(0, 30)));
+            const sessionSnaps = await getDocs(q);
+
+            const sessionData = sessionSnaps.docs
+              .map(doc => doc.data() as Session)
+              .sort((a, b) => b.createdAt - a.createdAt); // Sort by creation date descending
+
+            setSessions(sessionData);
+          } else {
+            setSessions([]);
+          }
+        } else {
+          setSessions([]); // No public index document found
+        }
+      } catch (error) {
+        console.error("Error fetching public sessions:", error);
+        setSessions([]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchPublicSessions();
   }, [firestore]);
-  
-  const { data: sessions, isLoading } = useCollection<Session>(sessionsQuery);
+
 
   return (
     <section className="space-y-6">
