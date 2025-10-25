@@ -60,7 +60,7 @@ export function CreateSessionDialog({ open, onOpenChange }: CreateSessionDialogP
     resolver: zodResolver(formSchema),
     defaultValues: {
       name: '',
-      motherLanguage: 'English',
+      motherLanguage: 'Traditional Chinese (Taiwan)',
       visibility: 'public',
     },
   });
@@ -145,6 +145,7 @@ export function CreateSessionDialog({ open, onOpenChange }: CreateSessionDialogP
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
+                      <SelectItem value="Traditional Chinese (Taiwan)">Traditional Chinese (Taiwan)</SelectItem>
                       <SelectItem value="Chinese">Chinese</SelectItem>
                       <SelectItem value="Spanish">Spanish</SelectItem>
                       <SelectItem value="French">French</SelectItem>
