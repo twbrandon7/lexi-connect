@@ -4,8 +4,9 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { Loader2, Sparkles, Wand2 } from 'lucide-react';
+import { Loader2, Plus, Sparkles, Wand2 } from 'lucide-react';
 import { aiPoweredVocabularyDiscovery, type AIPoweredVocabularyDiscoveryOutput } from '@/ai/flows/ai-powered-vocabulary-discovery';
+import { suggestMoreVocabulary } from '@/ai/flows/suggest-more-vocabulary';
 import { useUser } from '@/firebase';
 import {
   Form,
@@ -29,11 +30,15 @@ type AIQueryProps = {
   sessionLanguage: string;
 };
 
+type Suggestion = AIPoweredVocabularyDiscoveryOutput['suggestedVocabularyCards'][0];
+
 export function AIQuery({ sessionId, sessionLanguage }: AIQueryProps) {
   const { user } = useUser();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [aiResponse, setAiResponse] = useState<AIPoweredVocabularyDiscoveryOutput | null>(null);
+  const [moreSuggestions, setMoreSuggestions] = useState<Suggestion[]>([]);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -47,6 +52,7 @@ export function AIQuery({ sessionId, sessionLanguage }: AIQueryProps) {
     }
     setIsLoading(true);
     setAiResponse(null);
+    setMoreSuggestions([]);
     
     try {
       const response = await aiPoweredVocabularyDiscovery({
@@ -67,6 +73,34 @@ export function AIQuery({ sessionId, sessionLanguage }: AIQueryProps) {
       setIsLoading(false);
     }
   }
+
+  const handleLoadMore = async () => {
+    if (!aiResponse) return;
+    setIsLoadingMore(true);
+
+    const existingWords = [
+      ...aiResponse.suggestedVocabularyCards,
+      ...moreSuggestions
+    ].map(s => s.wordOrPhrase);
+
+    try {
+      const response = await suggestMoreVocabulary({
+        query: form.getValues('query'), // This might be empty if form was reset
+        motherLanguage: sessionLanguage,
+        existingWords: existingWords,
+      });
+      setMoreSuggestions(prev => [...prev, ...response.suggestedVocabularyCards]);
+    } catch (error) {
+      console.error('Failed to get more suggestions:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Failed to Load More',
+        description: 'Could not generate more suggestions.',
+      });
+    } finally {
+      setIsLoadingMore(false);
+    }
+  };
   
   const renderAnswer = (answer: string) => {
     const lines = answer.split('\n');
@@ -93,6 +127,8 @@ export function AIQuery({ sessionId, sessionLanguage }: AIQueryProps) {
     );
   };
 
+  const initialSuggestions = aiResponse?.suggestedVocabularyCards.slice(0, 3) || [];
+  const hasMoreInitialSuggestions = (aiResponse?.suggestedVocabularyCards.length || 0) > 3;
 
   return (
     <div className="space-y-6">
@@ -157,19 +193,35 @@ export function AIQuery({ sessionId, sessionLanguage }: AIQueryProps) {
                 </div>
             )}
             
-            {aiResponse.suggestedVocabularyCards.length > 0 && (
+            {initialSuggestions.length > 0 && (
               <div>
                 <h3 className="text-lg font-semibold mb-2">Suggested Vocabulary Cards</h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {aiResponse.suggestedVocabularyCards.map((cardSuggestion, index) => (
+                  {initialSuggestions.map((cardSuggestion, index) => (
                     <SuggestedCard
-                      key={index}
+                      key={`initial-${index}`}
+                      suggestion={cardSuggestion}
+                      sessionId={sessionId}
+                      sessionLanguage={sessionLanguage}
+                    />
+                  ))}
+                   {moreSuggestions.map((cardSuggestion, index) => (
+                    <SuggestedCard
+                      key={`more-${index}`}
                       suggestion={cardSuggestion}
                       sessionId={sessionId}
                       sessionLanguage={sessionLanguage}
                     />
                   ))}
                 </div>
+                 {(hasMoreInitialSuggestions || aiResponse.suggestedVocabularyCards.length > 0) && (
+                    <div className="mt-4 text-center">
+                        <Button variant="outline" onClick={handleLoadMore} disabled={isLoadingMore}>
+                            {isLoadingMore ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Plus className="mr-2 h-4 w-4" />}
+                            More
+                        </Button>
+                    </div>
+                )}
               </div>
             )}
           </CardContent>
