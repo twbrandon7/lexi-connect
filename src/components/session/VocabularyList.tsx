@@ -9,9 +9,10 @@ import { Skeleton } from '@/components/ui/skeleton';
 
 type VocabularyListProps = {
   sessionId: string;
+  sessionState?: 'open' | 'closed' | 'reopened';
 };
 
-export function VocabularyList({ sessionId }: VocabularyListProps) {
+export function VocabularyList({ sessionId, sessionState }: VocabularyListProps) {
   const firestore = useFirestore();
 
   const cardsQuery = useMemoFirebase(() => {
@@ -36,7 +37,7 @@ export function VocabularyList({ sessionId }: VocabularyListProps) {
       ) : cards && cards.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {cards.map((card) => (
-            <VocabularyCardComponent key={card.id} card={card} />
+            <VocabularyCardComponent key={card.id} card={card} sessionState={sessionState} />
           ))}
         </div>
       ) : (

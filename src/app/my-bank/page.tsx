@@ -1,69 +1,49 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { getDoc, doc } from 'firebase/firestore';
-import { useFirestore } from '@/firebase';
-import type { VocabularyCard as CardType } from '@/lib/types';
-import { VocabularyCard } from '@/components/session/VocabularyCard';
+import { useMemo } from 'react';
+import { collection, query, orderBy } from 'firebase/firestore';
+import { useCollection, useFirestore, useUser, useMemoFirebase } from '@/firebase';
+import type { PersonalVocabulary, VocabularyCard } from '@/lib/types';
+import { PersonalVocabularyCard } from '@/components/bank/PersonalVocabularyCard';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 
-type BankEntry = {
-  sessionId: string;
-  cardId: string;
-};
-
 export default function MyBankPage() {
   const firestore = useFirestore();
-  const [savedCards, setSavedCards] = useState<CardType[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { user, isUserLoading } = useUser();
 
-  useEffect(() => {
-    const fetchSavedCards = async () => {
-      if (!firestore) return;
-      const bankEntries: BankEntry[] = JSON.parse(localStorage.getItem('lexiconnect_bank') || '[]');
-      if (bankEntries.length === 0) {
-        setLoading(false);
-        return;
-      }
-      
-      const cardPromises = bankEntries.map(entry => 
-        getDoc(doc(firestore, `sessions/${entry.sessionId}/vocabularyCards/${entry.cardId}`))
-      );
+  const personalVocabQuery = useMemoFirebase(() => {
+    if (!firestore || !user) return null;
+    const personalVocabCollection = collection(firestore, `users/${user.uid}/personalVocabulary`);
+    return query(personalVocabCollection, orderBy('savedAt', 'desc'));
+  }, [firestore, user]);
 
-      const cardSnapshots = await Promise.all(cardPromises);
-      
-      const cards: CardType[] = cardSnapshots
-        .map((snapshot) => {
-          if (snapshot.exists()) {
-            return { id: snapshot.id, ...snapshot.data() } as CardType;
-          }
-          return null;
-        })
-        .filter((card): card is CardType => card !== null);
-      
-      setSavedCards(cards);
-      setLoading(false);
-    };
+  const { data: personalVocabEntries, isLoading: isLoadingEntries } = useCollection<PersonalVocabulary>(personalVocabQuery);
 
-    fetchSavedCards();
-  }, [firestore]);
+  const showLoading = isUserLoading || isLoadingEntries;
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <h1 className="text-3xl md:text-4xl font-bold font-headline mb-8">My Vocabulary Bank</h1>
+      <div className="flex items-center justify-between mb-8">
+        <h1 className="text-3xl md:text-4xl font-bold font-headline">My Vocabulary Bank</h1>
+         {personalVocabEntries && personalVocabEntries.length > 0 && (
+            <Button asChild>
+              <Link href={`/practice/my-bank`}>Practice My Bank</Link>
+            </Button>
+          )}
+      </div>
       
-      {loading ? (
+      {showLoading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {[...Array(3)].map((_, i) => (
-            <Skeleton key={i} className="h-48 w-full rounded-lg" />
+            <Skeleton key={i} className="h-56 w-full rounded-lg" />
           ))}
         </div>
-      ) : savedCards.length > 0 ? (
+      ) : personalVocabEntries && personalVocabEntries.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {savedCards.map((card) => (
-            <VocabularyCard key={card.id} card={card} />
+          {personalVocabEntries.map((entry) => (
+            <PersonalVocabularyCard key={entry.id} personalVocab={entry} />
           ))}
         </div>
       ) : (

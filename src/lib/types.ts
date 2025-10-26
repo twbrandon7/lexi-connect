@@ -11,6 +11,7 @@ export interface Session {
   hostId: string;
   createdAt: number;
   participantCount?: number;
+  state?: 'open' | 'closed' | 'reopened';
 }
 
 export interface VocabularyCard {
@@ -25,4 +26,13 @@ export interface VocabularyCard {
   creatorId: string;
   createdAt: number;
   sessionId: string;
+}
+
+export interface PersonalVocabulary {
+  id: string;
+  userId: string;
+  vocabularyCardId: string;
+  mastered: boolean;
+  difficultyLevel?: 'beginner' | 'intermediate' | 'advanced';
+  savedAt: number;
 }

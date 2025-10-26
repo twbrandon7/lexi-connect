@@ -87,6 +87,7 @@ export function CreateSessionDialog({ open, onOpenChange }: CreateSessionDialogP
         hostId: user.uid,
         createdAt: Date.now(),
         participantCount: 1,
+        state: 'open',
       };
 
       setDocumentNonBlocking(newSessionRef, newSession, {});

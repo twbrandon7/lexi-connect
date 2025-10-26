@@ -5,7 +5,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Loader2, Sparkles, Wand2 } from 'lucide-react';
-import { aiPoweredVocabularyDiscovery } from '@/ai/flows/ai-powered-vocabulary-discovery';
+import { suggestVocabularyCardsWithExistingCheck } from '@/ai/flows/vocabulary-card-suggestions';
 import { useUser } from '@/firebase';
 import {
   Form,
@@ -19,6 +19,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { SuggestedCard } from './SuggestedCard';
 import { useToast } from '@/hooks/use-toast';
+import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
+import { Info } from 'lucide-react';
 
 const formSchema = z.object({
   query: z.string().min(10, 'Please enter a more detailed question.'),
@@ -34,8 +36,9 @@ export function AIQuery({ sessionId, sessionLanguage }: AIQueryProps) {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [aiResponse, setAiResponse] = useState<{
-    answer: string;
-    suggestedVocabularyCards: string[];
+    cardSuggestions: { word: string; definition: string }[];
+    existingCardFound: boolean;
+    existingCardDetails?: { word: string; definition: string };
   } | null>(null);
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -51,10 +54,9 @@ export function AIQuery({ sessionId, sessionLanguage }: AIQueryProps) {
     setIsLoading(true);
     setAiResponse(null);
     try {
-      const response = await aiPoweredVocabularyDiscovery({
+      const response = await suggestVocabularyCardsWithExistingCheck({
         query: values.query,
         motherLanguage: sessionLanguage,
-        sessionId,
       });
       setAiResponse(response);
     } catch (error) {
@@ -125,17 +127,24 @@ export function AIQuery({ sessionId, sessionLanguage }: AIQueryProps) {
             <CardTitle>AI Response</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
-            <div className="prose prose-sm dark:prose-invert max-w-none">
-                <p>{aiResponse.answer}</p>
-            </div>
-            {aiResponse.suggestedVocabularyCards.length > 0 && (
+             {aiResponse.existingCardFound && aiResponse.existingCardDetails && (
+                <Alert>
+                  <Info className="h-4 w-4" />
+                  <AlertTitle>Existing Card Found</AlertTitle>
+                  <AlertDescription>
+                    A card with a similar meaning already exists in this session: <strong>{aiResponse.existingCardDetails.word}</strong> - "{aiResponse.existingCardDetails.definition}". Consider reviewing it instead of adding a duplicate.
+                  </AlertDescription>
+                </Alert>
+            )}
+
+            {aiResponse.cardSuggestions.length > 0 && (
               <div>
                 <h3 className="text-lg font-semibold mb-2">Suggested Vocabulary Cards</h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {aiResponse.suggestedVocabularyCards.map((word, index) => (
+                  {aiResponse.cardSuggestions.map((card, index) => (
                     <SuggestedCard
                       key={index}
-                      word={word}
+                      word={card.word}
                       sessionId={sessionId}
                       sessionLanguage={sessionLanguage}
                     />

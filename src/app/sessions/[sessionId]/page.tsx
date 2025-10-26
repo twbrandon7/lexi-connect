@@ -2,7 +2,7 @@
 
 import { use, useEffect, useState } from 'react';
 import { doc, getDoc } from 'firebase/firestore';
-import { useFirestore } from '@/firebase';
+import { useDoc, useFirestore, useUser } from '@/firebase';
 import type { Session } from '@/lib/types';
 import { VocabularyList } from '@/components/session/VocabularyList';
 import { AIQuery } from '@/components/session/AIQuery';
@@ -12,25 +12,31 @@ import { Terminal } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
+import { SessionManagement } from '@/components/session/SessionManagement';
 
 function SessionContent({ session, sessionId }: { session: Session; sessionId: string }) {
+  const { user } = useUser();
+  const isHost = user?.uid === session.hostId;
+
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="mb-8 space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <h1 className="text-3xl md:text-4xl font-bold font-headline truncate">{session.name}</h1>
           <div className="flex items-center gap-4">
+             {session.state && <Badge variant={session.state === 'closed' ? 'destructive' : 'default'}>{session.state}</Badge>}
             <Badge variant={session.visibility === 'public' ? 'default' : 'secondary'}>
               {session.visibility}
             </Badge>
+            {isHost && <SessionManagement session={session} />}
             <Button asChild>
               <Link href={`/practice/${sessionId}`}>Start Practice</Link>
             </Button>
           </div>
         </div>
-        <AIQuery sessionId={sessionId} sessionLanguage={session.motherLanguage} />
+        {session.state !== 'closed' && <AIQuery sessionId={sessionId} sessionLanguage={session.motherLanguage} />}
       </div>
-      <VocabularyList sessionId={sessionId} />
+      <VocabularyList sessionId={sessionId} sessionState={session.state} />
     </div>
   );
 }
@@ -54,43 +60,12 @@ export default function SessionPage({ params }: { params: Promise<{ sessionId: s
   const { sessionId } = use(params);
   const firestore = useFirestore();
 
-  const [session, setSession] = useState<Session | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
-
-  useEffect(() => {
-    const fetchSession = async () => {
-      if (!firestore || !sessionId) {
-        setIsLoading(false);
-        return;
-      }
-      setIsLoading(true);
-
-      try {
-        const sessionRef = doc(firestore, 'sessions', sessionId);
-        const sessionSnap = await getDoc(sessionRef);
-
-        if (sessionSnap.exists()) {
-          setSession({ id: sessionSnap.id, ...sessionSnap.data() } as Session);
-        } else {
-          setSession(null);
-        }
-      } catch (e: any) {
-        console.error("Error fetching session:", e);
-        // We only set a critical error if it's NOT a permission error.
-        // Permission errors are expected when a non-owner tries to access a private session
-        // and are handled by the security rules, resulting in a "not found" state for the user.
-        if (e.code !== 'permission-denied') {
-          setError(e);
-        }
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchSession();
+  const sessionRef = useMemo(() => {
+    if (!firestore || !sessionId) return null;
+    return doc(firestore, 'sessions', sessionId);
   }, [firestore, sessionId]);
 
+  const { data: session, isLoading, error } = useDoc<Session>(sessionRef);
 
   if (isLoading) {
     return <SessionSkeleton />;
