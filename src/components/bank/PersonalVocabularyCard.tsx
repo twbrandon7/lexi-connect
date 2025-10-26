@@ -27,6 +27,7 @@ import { Skeleton } from '../ui/skeleton';
 import { Volume2, MoreVertical, Trash2, CheckCircle, Circle, Tag } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
+import { VocabularyCardDetailsDialog } from '../session/VocabularyCardDetailsDialog';
 
 type PersonalVocabularyCardProps = {
   personalVocab: PersonalVocabulary;
@@ -37,6 +38,7 @@ export function PersonalVocabularyCard({ personalVocab }: PersonalVocabularyCard
   const { user } = useUser();
   const { toast } = useToast();
   const audioRef = useRef<HTMLAudioElement>(null);
+  const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   
   const cardRef = useMemo(() => {
     if (!firestore || !personalVocab.vocabularyCardId || !personalVocab.sessionId) return null;
@@ -64,7 +66,8 @@ export function PersonalVocabularyCard({ personalVocab }: PersonalVocabularyCard
     toast({ title: 'Removed', description: 'Card removed from your bank.'});
   };
 
-  const playAudio = () => {
+  const playAudio = (e: React.MouseEvent) => {
+    e.stopPropagation();
     if (audioRef.current) {
       audioRef.current.play().catch(e => console.error("Audio playback failed:", e));
     }
@@ -80,7 +83,11 @@ export function PersonalVocabularyCard({ personalVocab }: PersonalVocabularyCard
       <Card className="flex flex-col border-destructive">
         <CardHeader>
           <CardTitle className='text-destructive'>Card Not Found</CardTitle>
-          <CardDescription>The original vocabulary card may have been deleted.</CardDescription>
+          <CardDescription>
+            <div className='flex flex-col'>
+              <span>The original vocabulary card may have been deleted.</span>
+            </div>
+          </CardDescription>
         </CardHeader>
         <CardFooter>
             <Button variant="destructive" size="sm" onClick={handleDelete}><Trash2 className="mr-2"/> Remove</Button>
@@ -90,56 +97,74 @@ export function PersonalVocabularyCard({ personalVocab }: PersonalVocabularyCard
   }
 
   return (
-    <Card className={cn("flex flex-col", personalVocab.mastered && "bg-secondary")}>
-      {card.audioPronunciationUrl && (
-        <audio ref={audioRef} src={card.audioPronunciationUrl} className="hidden" />
-      )}
-      <CardHeader>
-         <div className="flex justify-between items-start gap-4">
-            <CardTitle>{card.wordOrPhrase}</CardTitle>
-            <div className='flex items-center'>
-              {card.audioPronunciationUrl && (
-                  <Button variant="ghost" size="icon" onClick={playAudio}>
-                      <Volume2 />
-                      <span className="sr-only">Play pronunciation</span>
-                  </Button>
-              )}
-               <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon"><MoreVertical /></Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent>
-                    <DropdownMenuItem onClick={toggleMastered}>
-                        {personalVocab.mastered ? <Circle className='mr-2' /> : <CheckCircle className="mr-2" />}
-                        {personalVocab.mastered ? 'Mark as Not Mastered' : 'Mark as Mastered'}
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuRadioGroup value={personalVocab.difficultyLevel} onValueChange={handleDifficultyChange}>
-                        <DropdownMenuRadioItem value="beginner"><Tag className="mr-2" />Beginner</DropdownMenuRadioItem>
-                        <DropdownMenuRadioItem value="intermediate"><Tag className="mr-2" />Intermediate</DropdownMenuRadioItem>
-                        <DropdownMenuRadioItem value="advanced"><Tag className="mr-2" />Advanced</DropdownMenuRadioItem>
-                    </DropdownMenuRadioGroup>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem className="text-destructive" onClick={handleDelete}>
-                        <Trash2 className="mr-2" />
-                        Remove from bank
-                    </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+    <>
+      <div onClick={() => setIsDetailsOpen(true)} className="cursor-pointer h-full">
+        <Card className={cn("flex flex-col h-full", personalVocab.mastered && "bg-secondary")}>
+          {card.audioPronunciationUrl && (
+            <audio ref={audioRef} src={card.audioPronunciationUrl} className="hidden" />
+          )}
+          <CardHeader>
+            <div className="flex justify-between items-start gap-4">
+                <CardTitle className="flex items-baseline gap-3">
+                  <span>{card.wordOrPhrase}</span>
+                  {card.translation && <span className="text-xl text-primary font-medium">{card.translation}</span>}
+                </CardTitle>
+                <div className='flex items-center'>
+                  {card.audioPronunciationUrl && (
+                      <Button variant="ghost" size="icon" onClick={playAudio}>
+                          <Volume2 />
+                          <span className="sr-only">Play pronunciation</span>
+                      </Button>
+                  )}
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="icon" onClick={(e) => e.stopPropagation()}><MoreVertical /></Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent onClick={(e) => e.stopPropagation()}>
+                        <DropdownMenuItem onClick={toggleMastered}>
+                            {personalVocab.mastered ? <Circle className='mr-2' /> : <CheckCircle className="mr-2" />}
+                            {personalVocab.mastered ? 'Mark as Not Mastered' : 'Mark as Mastered'}
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuRadioGroup value={personalVocab.difficultyLevel} onValueChange={handleDifficultyChange}>
+                            <DropdownMenuRadioItem value="beginner"><Tag className="mr-2" />Beginner</DropdownMenuRadioItem>
+                            <DropdownMenuRadioItem value="intermediate"><Tag className="mr-2" />Intermediate</DropdownMenuRadioItem>
+                            <DropdownMenuRadioItem value="advanced"><Tag className="mr-2" />Advanced</DropdownMenuRadioItem>
+                        </DropdownMenuRadioGroup>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem className="text-destructive" onClick={handleDelete}>
+                            <Trash2 className="mr-2" />
+                            Remove from bank
+                        </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
             </div>
-        </div>
-        <CardDescription>{card.primaryMeaning}</CardDescription>
-      </CardHeader>
-      <CardContent className="flex-grow">
-         {card.exampleSentence && (
-            <blockquote className="mt-2 border-l-2 pl-4 italic text-muted-foreground">
-                "{card.exampleSentence}"
-            </blockquote>
-        )}
-      </CardContent>
-       <CardFooter>
-          {personalVocab.difficultyLevel && <Badge variant="outline">{personalVocab.difficultyLevel}</Badge>}
-      </CardFooter>
-    </Card>
+             <CardDescription>
+                <div className="flex items-center gap-2 text-muted-foreground pt-1">
+                {card.pronunciationIpa && <span>/{card.pronunciationIpa}/</span>}
+                {card.partOfSpeech && <Badge variant="secondary">{card.partOfSpeech}</Badge>}
+                </div>
+             </CardDescription>
+          </CardHeader>
+          <CardContent className="flex-grow">
+            {card.exampleSentence && (
+                <blockquote className="mt-2 border-l-2 pl-4 italic text-muted-foreground">
+                    <p>"{card.exampleSentence}"</p>
+                    {card.exampleSentenceTranslation && <p className="mt-2 text-sm">"{card.exampleSentenceTranslation}"</p>}
+                </blockquote>
+            )}
+          </CardContent>
+          <CardFooter>
+              {personalVocab.difficultyLevel && <Badge variant="outline">{personalVocab.difficultyLevel}</Badge>}
+          </CardFooter>
+        </Card>
+      </div>
+      <VocabularyCardDetailsDialog
+        isOpen={isDetailsOpen}
+        setIsOpen={setIsDetailsOpen}
+        card={card}
+      />
+    </>
   );
 }
