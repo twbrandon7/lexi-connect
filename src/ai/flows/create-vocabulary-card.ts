@@ -24,6 +24,7 @@ const CreateVocabularyCardOutputSchema = z.object({
   pronunciationIpa: z.string(),
   exampleSentence: z.string(),
   translation: z.string(),
+  exampleSentenceTranslation: z.string().describe("The translation of the example sentence into the user's mother language."),
 });
 export type CreateVocabularyCardOutput = z.infer<typeof CreateVocabularyCardOutputSchema>;
 
@@ -45,6 +46,7 @@ Generate the following fields for the word/phrase "{{wordOrPhrase}}":
 3.  **pronunciationIpa**: The pronunciation in International Phonetic Alphabet (IPA) notation.
 4.  **exampleSentence**: A natural and illustrative example sentence.
 5.  **translation**: The translation of the word/phrase into the user's mother language, which is {{{motherLanguage}}}.
+6.  **exampleSentenceTranslation**: The translation of the example sentence into the user's mother language.
 
 Ensure all fields are accurate and helpful for a language learner.`,
 });

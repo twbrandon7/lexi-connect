@@ -93,7 +93,8 @@ export function VocabularyCard({ card, sessionState = 'open' }: VocabularyCardPr
         <CardContent className="flex-grow space-y-4">
           {card.exampleSentence && (
               <blockquote className="border-l-2 pl-4 italic text-muted-foreground">
-                  "{card.exampleSentence}"
+                  <p>"{card.exampleSentence}"</p>
+                  {card.exampleSentenceTranslation && <p className="mt-2 text-sm">"{card.exampleSentenceTranslation}"</p>}
               </blockquote>
           )}
         </CardContent>

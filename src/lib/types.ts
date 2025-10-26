@@ -26,6 +26,7 @@ export interface VocabularyCard {
   creatorId: string;
   createdAt: number;
   sessionId: string;
+  exampleSentenceTranslation?: string;
 }
 
 export interface PersonalVocabulary {
