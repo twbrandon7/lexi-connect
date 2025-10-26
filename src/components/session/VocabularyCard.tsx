@@ -84,7 +84,10 @@ export function VocabularyCard({ card, sessionState = 'open' }: VocabularyCardPr
                   </>
               )}
           </div>
-          {card.pronunciationIpa && <p className="text-muted-foreground">/{card.pronunciationIpa}/</p>}
+          <div className="flex items-center gap-2 text-muted-foreground">
+            {card.pronunciationIpa && <span>/{card.pronunciationIpa}/</span>}
+            {card.partOfSpeech && <Badge variant="secondary">{card.partOfSpeech}</Badge>}
+          </div>
           <CardDescription>{card.primaryMeaning}</CardDescription>
         </CardHeader>
         <CardContent className="flex-grow space-y-4">
