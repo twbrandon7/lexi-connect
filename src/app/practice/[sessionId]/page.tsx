@@ -1,7 +1,7 @@
 'use client';
 
 import { use, useEffect, useState, useMemo } from 'react';
-import { collection, query, getDocs } from 'firebase/firestore';
+import { collection, query, getDocs, doc, where } from 'firebase/firestore';
 import { useCollection, useFirestore, useUser, useMemoFirebase } from '@/firebase';
 import type { VocabularyCard, PersonalVocabulary } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -49,7 +49,12 @@ export default function PracticePage({ params }: { params: Promise<{ sessionId: 
 
   const { data: sessionCards, isLoading: isLoadingSessionCards } =
     useCollection<VocabularyCard>(sessionCardsQuery);
-  const { data: sessionInfo } = useDoc(doc(firestore, `sessions/${sessionId}`));
+    
+  const sessionInfoRef = useMemoFirebase(() => {
+    if (!firestore || isPracticeMyBank) return null;
+    return doc(firestore, `sessions/${sessionId}`);
+  },[firestore, sessionId, isPracticeMyBank]);
+  const { data: sessionInfo } = useDoc(sessionInfoRef);
 
   // Fetch cards from the user's personal bank
   const personalVocabQuery = useMemoFirebase(() => {
