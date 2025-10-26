@@ -43,17 +43,21 @@ export function SuggestedCard({ suggestion, sessionId, sessionLanguage }: Sugges
       const vocabularyCardsCollection = collection(firestore, `sessions/${sessionId}/vocabularyCards`);
       const newCardRef = doc(vocabularyCardsCollection);
 
-      const [details, audio] = await Promise.all([
-         createVocabularyCard({
-            wordOrPhrase: wordOrPhrase,
-            motherLanguage: sessionLanguage,
-            exampleSentence: exampleSentence,
-        }),
-        generateAudioAction(wordOrPhrase)
-      ]);
-      
+      // First, get all the text details for the card
+      const details = await createVocabularyCard({
+        wordOrPhrase: wordOrPhrase,
+        motherLanguage: sessionLanguage,
+        exampleSentence: exampleSentence,
+      });
+
+      // Then, generate the audio separately
+      const audio = await generateAudioAction(wordOrPhrase);
       if (audio.error) {
-        throw new Error(audio.error);
+        toast({
+          variant: 'destructive',
+          title: 'Audio Failed',
+          description: `Could not generate audio for "${wordOrPhrase}". The card was added without it.`,
+        });
       }
 
       const newCard: VocabularyCard = {

@@ -73,19 +73,20 @@ export function EditSuggestedCardDialog({ isOpen, setIsOpen, suggestion, session
       const vocabularyCardsCollection = collection(firestore, `sessions/${sessionId}/vocabularyCards`);
       const newCardRef = doc(vocabularyCardsCollection);
       
-      const isPartiallyFilled = !values.partOfSpeech || !values.translation || !values.exampleSentence;
-
-      // Call AI to fill fields only if needed, but ensure we have all data.
       const cardDetails = await createVocabularyCard({
         wordOrPhrase: values.wordOrPhrase,
         motherLanguage: sessionLanguage,
-        exampleSentence: values.exampleSentence, // Pass context sentence
+        exampleSentence: values.exampleSentence,
       });
 
       const audio = await generateAudioAction(values.wordOrPhrase);
 
       if (audio.error) {
-        throw new Error(audio.error);
+        toast({
+          variant: 'destructive',
+          title: 'Audio Failed',
+          description: `Could not generate audio for "${values.wordOrPhrase}". The card will be added without it.`,
+        });
       }
 
       const finalCardData: VocabularyCard = {
