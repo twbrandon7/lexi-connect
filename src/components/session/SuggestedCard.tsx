@@ -47,6 +47,7 @@ export function SuggestedCard({ suggestion, sessionId, sessionLanguage }: Sugges
          createVocabularyCard({
             wordOrPhrase: wordOrPhrase,
             motherLanguage: sessionLanguage,
+            exampleSentence: exampleSentence,
         }),
         generateAudioPronunciation(wordOrPhrase)
       ]);

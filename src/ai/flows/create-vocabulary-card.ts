@@ -14,6 +14,7 @@ import { z } from 'genkit';
 const CreateVocabularyCardInputSchema = z.object({
   wordOrPhrase: z.string().describe('The English word or phrase to create a card for.'),
   motherLanguage: z.string().describe('The user’s mother language for translation.'),
+  exampleSentence: z.string().optional().describe('An optional example sentence to provide context.'),
 });
 export type CreateVocabularyCardInput = z.infer<typeof CreateVocabularyCardInputSchema>;
 
@@ -41,12 +42,12 @@ const prompt = ai.definePrompt({
 The user's mother language is {{{motherLanguage}}}.
 
 Generate the following fields for the word/phrase "{{wordOrPhrase}}":
-1.  **primaryMeaning**: A clear and concise definition in English.
+1.  **primaryMeaning**: A clear and concise definition in English. If an example sentence is provided, tailor the meaning to that context.
 2.  **partOfSpeech**: The grammatical part of speech (e.g., noun, verb, adjective).
 3.  **pronunciationIpa**: The pronunciation in International Phonetic Alphabet (IPA) notation.
-4.  **exampleSentence**: A natural and illustrative example sentence.
+4.  **exampleSentence**: Use the provided example sentence if available: "{{#if exampleSentence}}{{{exampleSentence}}}{{else}}A natural and illustrative example sentence.{{/if}}". If not, create a new one.
 5.  **translation**: The translation of the word/phrase into the user's mother language, which is {{{motherLanguage}}}.
-6.  **exampleSentenceTranslation**: The translation of the example sentence into the user's mother language.
+6.  **exampleSentenceTranslation**: The translation of the final example sentence into the user's mother language.
 
 Ensure all fields are accurate and helpful for a language learner.`,
 });

@@ -27,7 +27,7 @@ export default function MySessionsPage() {
         const sessionMap = new Map<string, Session>();
 
         // 1. Fetch sessions hosted by the user
-        const hostedQuery = query(collection(firestore, 'sessions'), where('hostId', '==', user.uid), orderBy('createdAt', 'desc'));
+        const hostedQuery = query(collection(firestore, 'sessions'), where('hostId', '==', user.uid));
         const hostedSnapshot = await getDocs(hostedQuery);
         hostedSnapshot.forEach(doc => {
             if (!sessionMap.has(doc.id)) {
@@ -62,7 +62,7 @@ export default function MySessionsPage() {
         }
         
         // 4. Combine and sort
-        const allSessions = Array.from(sessionMap.values()).sort((a, b) => b.createdAt - a.createdAt);
+        const allSessions = Array.from(sessionMap.values()).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
         setSessions(allSessions);
 
       } catch (error) {

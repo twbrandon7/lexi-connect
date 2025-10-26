@@ -75,24 +75,24 @@ export function EditSuggestedCardDialog({ isOpen, setIsOpen, suggestion, session
       
       const isPartiallyFilled = !values.partOfSpeech || !values.translation || !values.exampleSentence;
 
-      const cardDetails = isPartiallyFilled
-        ? await createVocabularyCard({
-            wordOrPhrase: values.wordOrPhrase,
-            motherLanguage: sessionLanguage,
-          })
-        : null;
+      // Call AI to fill fields only if needed, but ensure we have all data.
+      const cardDetails = await createVocabularyCard({
+        wordOrPhrase: values.wordOrPhrase,
+        motherLanguage: sessionLanguage,
+        exampleSentence: values.exampleSentence, // Pass context sentence
+      });
 
       const audio = await generateAudioPronunciation(values.wordOrPhrase);
 
       const finalCardData: VocabularyCard = {
         id: newCardRef.id,
         wordOrPhrase: values.wordOrPhrase,
-        primaryMeaning: cardDetails?.primaryMeaning || 'Generated meaning',
-        partOfSpeech: values.partOfSpeech || cardDetails?.partOfSpeech || '',
-        pronunciationIpa: cardDetails?.pronunciationIpa || '',
-        exampleSentence: values.exampleSentence || cardDetails?.exampleSentence || '',
-        translation: values.translation || cardDetails?.translation || '',
-        exampleSentenceTranslation: cardDetails?.exampleSentenceTranslation || '',
+        primaryMeaning: cardDetails.primaryMeaning,
+        partOfSpeech: values.partOfSpeech || cardDetails.partOfSpeech,
+        pronunciationIpa: cardDetails.pronunciationIpa,
+        exampleSentence: values.exampleSentence || cardDetails.exampleSentence,
+        translation: values.translation || cardDetails.translation,
+        exampleSentenceTranslation: cardDetails.exampleSentenceTranslation,
         audioPronunciationUrl: audio.media,
         creatorId: user.uid,
         creatorName: user.displayName || 'Anonymous',
