@@ -7,13 +7,32 @@ import { useUser, useAuth, initiateGoogleSignIn } from '@/firebase';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
 import { LogIn } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 export function Header() {
   const { user, isUserLoading } = useUser();
   const auth = useAuth();
+  const { toast } = useToast();
 
-  const handleSignIn = () => {
-    initiateGoogleSignIn(auth);
+  const handleSignIn = async () => {
+    if (!auth) return;
+    try {
+      await initiateGoogleSignIn(auth);
+    } catch (error: any) {
+      if (error.code === 'auth/popup-blocked-by-browser') {
+        toast({
+          variant: 'destructive',
+          title: 'Popup Blocked',
+          description: 'Please allow popups for this site to sign in with Google.',
+        });
+      } else {
+        toast({
+          variant: 'destructive',
+          title: 'Sign-In Error',
+          description: error.message || 'An unknown error occurred during sign-in.',
+        });
+      }
+    }
   };
 
   return (

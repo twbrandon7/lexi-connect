@@ -3,7 +3,7 @@ import {
   Auth, // Import Auth type for type hinting
   GoogleAuthProvider,
   signInAnonymously,
-  signInWithRedirect,
+  signInWithPopup,
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   // Assume getAuth and app are initialized elsewhere
@@ -30,10 +30,14 @@ export function initiateEmailSignIn(authInstance: Auth, email: string, password:
   // Code continues immediately. Auth state change is handled by onAuthStateChanged listener.
 }
 
-/** Initiate Google Sign-In with a redirect (non-blocking). */
-export function initiateGoogleSignIn(authInstance: Auth): void {
+/** Initiate Google Sign-In with a popup. */
+export async function initiateGoogleSignIn(authInstance: Auth): Promise<void> {
   const provider = new GoogleAuthProvider();
-  // CRITICAL: Call signInWithRedirect directly. Do NOT use 'await signInWithRedirect(...)'.
-  signInWithRedirect(authInstance, provider);
-  // The page will redirect. The result is handled by getRedirectResult in the FirebaseProvider.
+  try {
+    await signInWithPopup(authInstance, provider);
+  } catch (error: any) {
+    // Let the calling component handle the error and show UI feedback.
+    console.error('Google Sign-In Error:', error.code, error.message);
+    throw error;
+  }
 }
