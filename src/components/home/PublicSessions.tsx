@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { collection, query, where, getDocs } from 'firebase/firestore';
+import { collection, query, where, getDocs, orderBy } from 'firebase/firestore';
 import { useFirestore, useUser } from '@/firebase';
 import type { Session } from '@/lib/types';
 import { PublicSessionsList } from './PublicSessionsList';
@@ -51,17 +51,18 @@ export function PublicSessions() {
       setIsLoading(true);
       try {
         const sessionsCollection = collection(firestore, 'sessions');
-        // The orderBy clause was removed to prevent the index error
+        // This compound query requires a composite index in Firestore.
+        // If the index does not exist, Firestore will log an error to the console
+        // with a direct link to create it in the Firebase console.
         const q = query(
           sessionsCollection, 
-          where('visibility', '==', 'public')
+          where('visibility', '==', 'public'),
+          where('state', '==', 'open'),
+          orderBy('createdAt', 'desc')
         );
         
         const querySnapshot = await getDocs(q);
         const publicSessions = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Session));
-        
-        // Manual sort after fetching
-        publicSessions.sort((a, b) => b.createdAt - a.createdAt);
         
         setSessions(publicSessions);
       } catch (error) {
