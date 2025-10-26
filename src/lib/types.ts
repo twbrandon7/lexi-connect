@@ -37,3 +37,13 @@ export interface PersonalVocabulary {
   difficultyLevel?: 'beginner' | 'intermediate' | 'advanced';
   savedAt: number;
 }
+
+export type AIPoweredVocabularyDiscoveryOutput = {
+  answer: string;
+  suggestedVocabularyCards: {
+    wordOrPhrase: string;
+    partOfSpeech: string;
+    translation: string;
+    exampleSentence: string;
+  }[];
+};
