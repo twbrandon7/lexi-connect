@@ -7,10 +7,11 @@ const plugins: GenkitPlugin[] = [];
 if (process.env.GEMINI_API_KEY) {
   // Use google-genai plugin if an API key is provided
   plugins.push(googleAI());
-  plugins.push(googleCloud());
+  // The googleCloud plugin is added to support additional services like high-quality TTS
+  plugins.push(googleCloud); 
 } else {
   // Use google-cloud plugin for ADC support
-  plugins.push(googleCloud());
+  plugins.push(googleCloud);
 }
 
 export const ai = genkit({
