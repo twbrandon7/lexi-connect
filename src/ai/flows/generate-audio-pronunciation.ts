@@ -58,13 +58,15 @@ const generateAudioPronunciationFlow = ai.defineFlow(
     outputSchema: GenerateAudioPronunciationOutputSchema,
   },
   async (query) => {
+    const ttsModel = process.env.TTS_MODEL || 'googleai/gemini-2.5-flash-preview-tts';
+    
     const { media } = await ai.generate({
-      model: 'googleai/gemini-2.5-flash-preview-tts',
+      model: ttsModel,
       config: {
         responseModalities: ['AUDIO'],
         speechConfig: {
           voiceConfig: {
-            prebuiltVoiceConfig: { voiceName: 'Algenib' },
+            prebuiltVoiceConfig: { voiceName: 'Algenib' }, // Note: This might not apply to all models
           },
         },
       },
