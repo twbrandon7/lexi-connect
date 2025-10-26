@@ -16,7 +16,7 @@ import type { PersonalVocabulary, VocabularyCard as CardType } from '@/lib/types
 import { formatDistanceToNow } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { useUser, useFirestore, setDocumentNonBlocking } from '@/firebase';
-import { doc, collection } from 'firebase/firestore';
+import { doc } from 'firebase/firestore';
 import { EditVocabularyCardDialog } from './EditVocabularyCardDialog';
 import { Badge } from '../ui/badge';
 
@@ -28,7 +28,7 @@ type VocabularyCardProps = {
 export function VocabularyCard({ card, sessionState = 'open' }: VocabularyCardProps) {
   const audioRef = useRef<HTMLAudioElement>(null);
   const { toast } = useToast();
-  const { user } = useUser();
+  const { user } = useFirestore();
   const firestore = useFirestore();
   const [isEditOpen, setIsEditOpen] = useState(false);
 
@@ -45,7 +45,7 @@ export function VocabularyCard({ card, sessionState = 'open' }: VocabularyCardPr
     }
 
     try {
-      const personalVocabRef = doc(collection(firestore, `users/${user.uid}/personalVocabulary`), card.id);
+      const personalVocabRef = doc(firestore, `users/${user.uid}/personalVocabulary`, card.id);
       
       const newPersonalVocab: PersonalVocabulary = {
         id: card.id,
@@ -70,7 +70,10 @@ export function VocabularyCard({ card, sessionState = 'open' }: VocabularyCardPr
       <Card className="flex flex-col">
         <CardHeader>
           <div className="flex justify-between items-start gap-4">
-              <CardTitle>{card.wordOrPhrase}</CardTitle>
+              <CardTitle className="flex items-baseline gap-3">
+                <span>{card.wordOrPhrase}</span>
+                {card.translation && <span className="text-xl text-primary font-medium">{card.translation}</span>}
+              </CardTitle>
               {card.audioPronunciationUrl && (
                   <>
                       <Button variant="ghost" size="icon" onClick={playAudio}>
@@ -89,11 +92,6 @@ export function VocabularyCard({ card, sessionState = 'open' }: VocabularyCardPr
               <blockquote className="border-l-2 pl-4 italic text-muted-foreground">
                   "{card.exampleSentence}"
               </blockquote>
-          )}
-          {card.translation && (
-            <div>
-                <Badge variant="secondary">{card.translation}</Badge>
-            </div>
           )}
         </CardContent>
         <CardFooter className="flex justify-between items-center text-sm text-muted-foreground">
