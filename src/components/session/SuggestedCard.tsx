@@ -60,7 +60,7 @@ export function SuggestedCard({ suggestion, sessionId, sessionLanguage }: Sugges
         });
       }
 
-      const newCard: VocabularyCard = {
+      const newCard: Omit<VocabularyCard, 'audioPronunciationUrl'> & { audioPronunciationUrl?: string } = {
         id: newCardRef.id,
         wordOrPhrase: wordOrPhrase,
         primaryMeaning: details.primaryMeaning,
@@ -69,13 +69,16 @@ export function SuggestedCard({ suggestion, sessionId, sessionLanguage }: Sugges
         exampleSentence: exampleSentence,
         translation: translation,
         exampleSentenceTranslation: details.exampleSentenceTranslation,
-        audioPronunciationUrl: audio.media,
         creatorId: user.uid,
         creatorName: user.displayName || 'Anonymous',
         creatorPhotoURL: user.photoURL || '',
         createdAt: Date.now(),
         sessionId: sessionId,
       };
+
+      if (audio.media) {
+        newCard.audioPronunciationUrl = audio.media;
+      }
 
       setDocumentNonBlocking(newCardRef, newCard, {});
 

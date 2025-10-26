@@ -89,7 +89,7 @@ export function EditSuggestedCardDialog({ isOpen, setIsOpen, suggestion, session
         });
       }
 
-      const finalCardData: VocabularyCard = {
+      const finalCardData: Omit<VocabularyCard, 'audioPronunciationUrl'> & { audioPronunciationUrl?: string } = {
         id: newCardRef.id,
         wordOrPhrase: values.wordOrPhrase,
         primaryMeaning: cardDetails.primaryMeaning,
@@ -98,13 +98,16 @@ export function EditSuggestedCardDialog({ isOpen, setIsOpen, suggestion, session
         exampleSentence: values.exampleSentence || cardDetails.exampleSentence,
         translation: values.translation || cardDetails.translation,
         exampleSentenceTranslation: cardDetails.exampleSentenceTranslation,
-        audioPronunciationUrl: audio.media,
         creatorId: user.uid,
         creatorName: user.displayName || 'Anonymous',
         creatorPhotoURL: user.photoURL || '',
         createdAt: Date.now(),
         sessionId: sessionId,
       };
+
+      if (audio.media) {
+        finalCardData.audioPronunciationUrl = audio.media;
+      }
 
       setDocumentNonBlocking(newCardRef, finalCardData, {});
 
