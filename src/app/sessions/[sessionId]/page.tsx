@@ -1,8 +1,8 @@
 'use client';
 
-import { use, useEffect, useState } from 'react';
+import { use, useEffect, useState, useMemo } from 'react';
 import { doc, getDoc } from 'firebase/firestore';
-import { useDoc, useFirestore, useUser } from '@/firebase';
+import { useDoc, useFirestore, useUser, useMemoFirebase } from '@/firebase';
 import type { Session } from '@/lib/types';
 import { VocabularyList } from '@/components/session/VocabularyList';
 import { AIQuery } from '@/components/session/AIQuery';
@@ -60,7 +60,7 @@ export default function SessionPage({ params }: { params: Promise<{ sessionId: s
   const { sessionId } = use(params);
   const firestore = useFirestore();
 
-  const sessionRef = useMemo(() => {
+  const sessionRef = useMemoFirebase(() => {
     if (!firestore || !sessionId) return null;
     return doc(firestore, 'sessions', sessionId);
   }, [firestore, sessionId]);
