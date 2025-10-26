@@ -50,7 +50,7 @@ Your task is to:
 1.  First, provide a concise and friendly answer. Give multiple natural-sounding sentences in English that express the user's intent.
     *   Start with the most direct translation.
     *   Provide a few alternatives (e.g., more casual, more formal).
-    *   **Format this list of sentences using markdown bullet points (e.g., using a '-' or '*' at the start of the line).**
+    *   **Format this list of sentences using markdown bullet points. Each bullet point must start on a new line and begin with '-' or '*'.**
 2.  After providing the answer, identify key vocabulary words or phrases from the sentences you just generated. For each word/phrase, create a vocabulary suggestion.
 3.  For each suggestion, you MUST provide:
     *   **wordOrPhrase**: The English word or phrase.
