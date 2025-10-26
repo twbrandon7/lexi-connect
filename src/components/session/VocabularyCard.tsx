@@ -3,6 +3,7 @@
 import { useRef, useState } from 'react';
 import {
   Card,
+  CardContent,
   CardFooter,
   CardHeader,
   CardTitle,
@@ -99,7 +100,14 @@ export function VocabularyCard({ card, sessionState = 'open' }: VocabularyCardPr
             </div>
           </CardHeader>
           
-          <div className="flex-grow"></div>
+           <CardContent className="flex-grow">
+            {card.exampleSentence && (
+              <blockquote className="mt-2 border-l-2 pl-4 italic text-muted-foreground">
+                <p>"{card.exampleSentence}"</p>
+                  {card.exampleSentenceTranslation && <p className="mt-2 text-sm">"{card.exampleSentenceTranslation}"</p>}
+              </blockquote>
+            )}
+          </CardContent>
 
           <CardFooter className="flex justify-between items-center text-sm text-muted-foreground">
             <div className="flex items-center gap-2">
