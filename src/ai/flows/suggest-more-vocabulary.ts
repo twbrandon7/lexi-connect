@@ -37,7 +37,7 @@ export async function suggestMoreVocabulary(input: SuggestMoreVocabularyInput): 
 
 const prompt = ai.definePrompt({
   name: 'suggestMoreVocabularyPrompt',
-  model: googleAI.model('gemini-1.5-pro-latest'),
+  model: googleAI.model('gemini-2.5-flash'),
   input: { schema: SuggestMoreVocabularyInputSchema },
   output: { schema: SuggestMoreVocabularyOutputSchema },
   prompt: `You are a helpful AI assistant that suggests additional vocabulary cards based on a user's query, avoiding words that have already been provided.

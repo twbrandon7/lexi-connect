@@ -40,7 +40,7 @@ export async function suggestVocabularyCardsWithExistingCheck(input: SuggestVoca
 
 const prompt = ai.definePrompt({
   name: 'suggestVocabularyCardsWithExistingCheckPrompt',
-  model: googleAI.model('gemini-1.5-pro-latest'),
+  model: googleAI.model('gemini-2.5-flash'),
   input: {schema: SuggestVocabularyCardsWithExistingCheckInputSchema},
   output: {schema: SuggestVocabularyCardsWithExistingCheckOutputSchema},
   prompt: `You are a helpful AI assistant that suggests vocabulary cards based on a user's query, and identifies if similar cards already exist. 
