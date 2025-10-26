@@ -7,6 +7,7 @@ const plugins: GenkitPlugin[] = [];
 if (process.env.GEMINI_API_KEY) {
   // Use google-genai plugin if an API key is provided
   plugins.push(googleAI());
+  plugins.push(googleCloud());
 } else {
   // Use google-cloud plugin for ADC support
   plugins.push(googleCloud());

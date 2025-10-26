@@ -11,6 +11,7 @@
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 import wav from 'wav';
+import { googleAI } from '@genkit-ai/google-genai';
 
 const GenerateAudioPronunciationInputSchema = z.string().describe('The text to generate audio pronunciation for.');
 export type GenerateAudioPronunciationInput = z.infer<typeof GenerateAudioPronunciationInputSchema>;
@@ -58,15 +59,15 @@ const generateAudioPronunciationFlow = ai.defineFlow(
     outputSchema: GenerateAudioPronunciationOutputSchema,
   },
   async (query) => {
-    const ttsModel = process.env.TTS_MODEL || 'googleai/gemini-2.5-flash-preview-tts';
+    const ttsModel = process.env.TTS_MODEL || 'text-to-speech-1';
     
     const { media } = await ai.generate({
-      model: ttsModel,
+      model: googleAI.model(ttsModel),
       config: {
         responseModalities: ['AUDIO'],
         speechConfig: {
           voiceConfig: {
-            prebuiltVoiceConfig: { voiceName: 'Algenib' }, // Note: This might not apply to all models
+            prebuiltVoiceConfig: { voiceName: 'en-US-Wavenet-A' }, 
           },
         },
       },
