@@ -1,7 +1,7 @@
 'use client';
 
-import { use, useEffect, useState, useMemo } from 'react';
-import { doc, getDoc } from 'firebase/firestore';
+import { use, useEffect } from 'react';
+import { doc, updateDoc, arrayUnion } from 'firebase/firestore';
 import { useDoc, useFirestore, useUser, useMemoFirebase } from '@/firebase';
 import type { Session } from '@/lib/types';
 import { VocabularyList } from '@/components/session/VocabularyList';
@@ -10,13 +10,24 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Terminal } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-import Link from 'next/link';
-import { Button } from '@/components/ui/button';
 import { SessionManagement } from '@/components/session/SessionManagement';
 
 function SessionContent({ session, sessionId }: { session: Session; sessionId: string }) {
   const { user } = useUser();
+  const firestore = useFirestore();
   const isHost = user?.uid === session.hostId;
+
+  useEffect(() => {
+    if (user && firestore && session.id && session.state !== 'closed') {
+      const sessionRef = doc(firestore, 'sessions', session.id);
+      // Add the current user to the participants array if they are not already in it.
+      // arrayUnion is idempotent and will not add duplicates.
+      updateDoc(sessionRef, {
+        participants: arrayUnion(user.uid)
+      });
+    }
+  }, [user, firestore, session.id, session.state]);
+
 
   return (
     <div className="container mx-auto px-4 py-8">

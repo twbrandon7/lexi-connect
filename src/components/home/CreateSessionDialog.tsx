@@ -87,7 +87,7 @@ export function CreateSessionDialog({ open, onOpenChange }: CreateSessionDialogP
         hostId: user.uid,
         hostName: user.displayName || 'Anonymous Host',
         createdAt: Date.now(),
-        participantCount: 1,
+        participants: [user.uid],
         state: 'open',
       };
 

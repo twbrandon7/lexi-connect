@@ -11,7 +11,7 @@ export interface Session {
   hostId: string;
   hostName: string;
   createdAt: number;
-  participantCount?: number;
+  participants?: string[];
   state?: 'open' | 'closed' | 'reopened';
 }
 
@@ -21,7 +21,6 @@ export interface VocabularyCard {
   primaryMeaning: string;
   partOfSpeech: string;
   pronunciationIpa: string;
-  audioPronunciationUrl?: string;
   exampleSentence: string;
   translation: string;
   creatorId: string;
@@ -30,6 +29,7 @@ export interface VocabularyCard {
   createdAt: number;
   sessionId: string;
   exampleSentenceTranslation?: string;
+  audioPronunciationUrl?: string;
 }
 
 export interface PersonalVocabulary {

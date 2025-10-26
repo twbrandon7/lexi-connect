@@ -19,7 +19,7 @@ export function SessionItem({ session }: SessionItemProps) {
       <CardContent className="flex-grow space-y-2">
          <div className="flex items-center text-sm text-muted-foreground">
             <Users className="mr-2 h-4 w-4" />
-            <span>{session.participantCount || 1} participant(s)</span>
+            <span>{session.participants?.length || 1} participant(s)</span>
           </div>
           <div className="flex items-center text-sm text-muted-foreground">
             <Calendar className="mr-2 h-4 w-4" />
