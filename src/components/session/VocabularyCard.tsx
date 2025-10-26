@@ -18,6 +18,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useUser, useFirestore, setDocumentNonBlocking } from '@/firebase';
 import { doc, collection } from 'firebase/firestore';
 import { EditVocabularyCardDialog } from './EditVocabularyCardDialog';
+import { Badge } from '../ui/badge';
 
 type VocabularyCardProps = {
   card: CardType;
@@ -80,13 +81,19 @@ export function VocabularyCard({ card, sessionState = 'open' }: VocabularyCardPr
                   </>
               )}
           </div>
+          {card.pronunciationIpa && <p className="text-muted-foreground">/{card.pronunciationIpa}/</p>}
           <CardDescription>{card.primaryMeaning}</CardDescription>
         </CardHeader>
-        <CardContent className="flex-grow">
+        <CardContent className="flex-grow space-y-4">
           {card.exampleSentence && (
-              <blockquote className="mt-2 border-l-2 pl-4 italic text-muted-foreground">
+              <blockquote className="border-l-2 pl-4 italic text-muted-foreground">
                   "{card.exampleSentence}"
               </blockquote>
+          )}
+          {card.translation && (
+            <div>
+                <Badge variant="secondary">{card.translation}</Badge>
+            </div>
           )}
         </CardContent>
         <CardFooter className="flex justify-between items-center text-sm text-muted-foreground">
