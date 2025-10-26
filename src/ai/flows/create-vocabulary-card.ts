@@ -10,6 +10,7 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
+import { googleAI } from '@genkit-ai/google-genai';
 
 const CreateVocabularyCardInputSchema = z.object({
   wordOrPhrase: z.string().describe('The English word or phrase to create a card for.'),
@@ -35,7 +36,7 @@ export async function createVocabularyCard(input: CreateVocabularyCardInput): Pr
 
 const prompt = ai.definePrompt({
   name: 'createVocabularyCardPrompt',
-  model: "googleai/gemini-1.5-pro-latest",
+  model: googleAI.model('gemini-1.5-pro-latest'),
   input: { schema: CreateVocabularyCardInputSchema },
   output: { schema: CreateVocabularyCardOutputSchema },
   prompt: `You are an expert linguist and English teacher. Your task is to create a complete and accurate vocabulary card for the given English word or phrase.

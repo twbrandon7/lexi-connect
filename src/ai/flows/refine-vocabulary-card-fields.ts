@@ -10,6 +10,7 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
+import { googleAI } from '@genkit-ai/google-genai';
 
 const RefineVocabularyCardFieldsInputSchema = z.object({
   cardContent: z.string().describe('The current content of the vocabulary card.'),
@@ -29,7 +30,7 @@ export async function refineVocabularyCardFields(input: RefineVocabularyCardFiel
 
 const prompt = ai.definePrompt({
   name: 'refineVocabularyCardFieldsPrompt',
-  model: "googleai/gemini-1.5-pro-latest",
+  model: googleAI.model('gemini-1.5-pro-latest'),
   input: {schema: RefineVocabularyCardFieldsInputSchema},
   output: {schema: RefineVocabularyCardFieldsOutputSchema},
   prompt: `You are a helpful AI assistant that refines specific fields of a vocabulary card based on user instructions.

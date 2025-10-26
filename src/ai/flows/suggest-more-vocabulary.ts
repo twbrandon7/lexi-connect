@@ -10,6 +10,7 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
+import { googleAI } from '@genkit-ai/google-genai';
 
 const SuggestMoreVocabularyInputSchema = z.object({
   query: z.string().describe('The original user query to suggest vocabulary cards for.'),
@@ -36,7 +37,7 @@ export async function suggestMoreVocabulary(input: SuggestMoreVocabularyInput): 
 
 const prompt = ai.definePrompt({
   name: 'suggestMoreVocabularyPrompt',
-  model: "googleai/gemini-1.5-pro-latest",
+  model: googleAI.model('gemini-1.5-pro-latest'),
   input: { schema: SuggestMoreVocabularyInputSchema },
   output: { schema: SuggestMoreVocabularyOutputSchema },
   prompt: `You are a helpful AI assistant that suggests additional vocabulary cards based on a user's query, avoiding words that have already been provided.

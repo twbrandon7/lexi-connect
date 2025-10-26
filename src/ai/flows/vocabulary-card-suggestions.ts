@@ -10,6 +10,7 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
+import { googleAI } from '@genkit-ai/google-genai';
 
 const SuggestVocabularyCardsWithExistingCheckInputSchema = z.object({
   query: z.string().describe('The user query to suggest vocabulary cards for.'),
@@ -39,7 +40,7 @@ export async function suggestVocabularyCardsWithExistingCheck(input: SuggestVoca
 
 const prompt = ai.definePrompt({
   name: 'suggestVocabularyCardsWithExistingCheckPrompt',
-  model: "googleai/gemini-1.5-pro-latest",
+  model: googleAI.model('gemini-1.5-pro-latest'),
   input: {schema: SuggestVocabularyCardsWithExistingCheckInputSchema},
   output: {schema: SuggestVocabularyCardsWithExistingCheckOutputSchema},
   prompt: `You are a helpful AI assistant that suggests vocabulary cards based on a user's query, and identifies if similar cards already exist. 
