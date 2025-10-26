@@ -9,16 +9,28 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Volume2, Bookmark, Edit } from 'lucide-react';
+import { Volume2, Bookmark, Edit, Trash2 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import type { PersonalVocabulary, VocabularyCard as CardType } from '@/lib/types';
 import { formatDistanceToNow } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
-import { useUser, useFirestore, setDocumentNonBlocking } from '@/firebase';
+import { useUser, useFirestore, setDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import { EditVocabularyCardDialog } from './EditVocabularyCardDialog';
 import { Badge } from '../ui/badge';
 import { VocabularyCardDetailsDialog } from './VocabularyCardDetailsDialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
+
 
 type VocabularyCardProps = {
   card: CardType;
@@ -32,6 +44,7 @@ export function VocabularyCard({ card, sessionState = 'open' }: VocabularyCardPr
   const firestore = useFirestore();
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
+  const isCreator = user?.uid === card.creatorId;
 
 
   const playAudio = (e: React.MouseEvent) => {
@@ -72,6 +85,13 @@ export function VocabularyCard({ card, sessionState = 'open' }: VocabularyCardPr
   const openEditDialog = (e: React.MouseEvent) => {
     e.stopPropagation();
     setIsEditOpen(true);
+  }
+
+  const handleDeleteCard = () => {
+    if (!firestore || !isCreator) return;
+    const cardRef = doc(firestore, `sessions/${card.sessionId}/vocabularyCards`, card.id);
+    deleteDocumentNonBlocking(cardRef);
+    toast({ title: 'Card Deleted', description: 'The vocabulary card has been removed.' });
   }
 
   return (
@@ -121,6 +141,28 @@ export function VocabularyCard({ card, sessionState = 'open' }: VocabularyCardPr
                 </div>
             </div>
             <div className="flex gap-2">
+              {isCreator && sessionState === 'open' && (
+                 <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="destructive" size="sm" onClick={(e) => e.stopPropagation()}>
+                      <Trash2 className="mr-2 h-4 w-4" />
+                      Delete
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent onClick={(e) => e.stopPropagation()}>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        This will permanently delete this card from the session. This action cannot be undone.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction onClick={handleDeleteCard}>Delete</AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              )}
               {sessionState === 'open' && (
                 <Button variant="outline" size="sm" onClick={openEditDialog}>
                   <Edit className="mr-2 h-4 w-4" />
