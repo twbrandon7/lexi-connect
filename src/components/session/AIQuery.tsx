@@ -5,7 +5,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Loader2, Sparkles, Wand2 } from 'lucide-react';
-import { aiPoweredVocabularyDiscovery } from '@/ai/flows/ai-powered-vocabulary-discovery';
+import { aiPoweredVocabularyDiscovery, type AIPoweredVocabularyDiscoveryOutput } from '@/ai/flows/ai-powered-vocabulary-discovery';
 import { useUser } from '@/firebase';
 import {
   Form,
@@ -33,10 +33,7 @@ export function AIQuery({ sessionId, sessionLanguage }: AIQueryProps) {
   const { user } = useUser();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
-  const [aiResponse, setAiResponse] = useState<{
-    answer: string;
-    suggestedVocabularyCards: string[];
-  } | null>(null);
+  const [aiResponse, setAiResponse] = useState<AIPoweredVocabularyDiscoveryOutput | null>(null);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -50,7 +47,6 @@ export function AIQuery({ sessionId, sessionLanguage }: AIQueryProps) {
     }
     setIsLoading(true);
     setAiResponse(null);
-    form.reset();
     
     try {
       const response = await aiPoweredVocabularyDiscovery({
@@ -59,6 +55,7 @@ export function AIQuery({ sessionId, sessionLanguage }: AIQueryProps) {
         sessionId: sessionId,
       });
       setAiResponse(response);
+      form.reset();
     } catch (error) {
       console.error('AI query failed:', error);
       toast({
@@ -138,10 +135,10 @@ export function AIQuery({ sessionId, sessionLanguage }: AIQueryProps) {
               <div>
                 <h3 className="text-lg font-semibold mb-2">Suggested Vocabulary Cards</h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {aiResponse.suggestedVocabularyCards.map((word, index) => (
+                  {aiResponse.suggestedVocabularyCards.map((cardSuggestion, index) => (
                     <SuggestedCard
                       key={index}
-                      word={word}
+                      suggestion={cardSuggestion}
                       sessionId={sessionId}
                       sessionLanguage={sessionLanguage}
                     />
