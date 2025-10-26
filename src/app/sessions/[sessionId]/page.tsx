@@ -29,9 +29,6 @@ function SessionContent({ session, sessionId }: { session: Session; sessionId: s
               {session.visibility}
             </Badge>
             {isHost && <SessionManagement session={session} />}
-            <Button asChild>
-              <Link href={`/practice/${sessionId}`}>Start Practice</Link>
-            </Button>
           </div>
         </div>
         {session.state !== 'closed' && <AIQuery sessionId={sessionId} sessionLanguage={session.motherLanguage} />}
