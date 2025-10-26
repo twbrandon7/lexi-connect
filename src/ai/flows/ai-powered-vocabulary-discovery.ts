@@ -40,6 +40,7 @@ export async function aiPoweredVocabularyDiscovery(input: AIPoweredVocabularyDis
 
 const prompt = ai.definePrompt({
   name: 'aiPoweredVocabularyDiscoveryPrompt',
+  model: "googleai/gemini-1.5-flash-preview",
   input: {schema: AIPoweredVocabularyDiscoveryInputSchema},
   output: {schema: AIPoweredVocabularyDiscoveryOutputSchema},
   prompt: `You are an expert linguist and English teacher. A user is asking for help expressing something in English. Their mother language is {{{motherLanguage}}}.

@@ -33,6 +33,7 @@ export async function suggestVocabularyCards(input: SuggestVocabularyCardsInput)
 
 const prompt = ai.definePrompt({
   name: 'suggestVocabularyCardsPrompt',
+  model: "googleai/gemini-1.5-flash-preview",
   input: {schema: SuggestVocabularyCardsInputSchema},
   output: {schema: SuggestVocabularyCardsOutputSchema},
   prompt: `You are a helpful AI assistant that suggests vocabulary cards based on a user's query.

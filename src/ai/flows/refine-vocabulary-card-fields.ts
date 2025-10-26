@@ -29,6 +29,7 @@ export async function refineVocabularyCardFields(input: RefineVocabularyCardFiel
 
 const prompt = ai.definePrompt({
   name: 'refineVocabularyCardFieldsPrompt',
+  model: "googleai/gemini-1.5-flash-preview",
   input: {schema: RefineVocabularyCardFieldsInputSchema},
   output: {schema: RefineVocabularyCardFieldsOutputSchema},
   prompt: `You are a helpful AI assistant that refines specific fields of a vocabulary card based on user instructions.
