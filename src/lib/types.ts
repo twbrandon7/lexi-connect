@@ -9,6 +9,7 @@ export interface Session {
   motherLanguage: string;
   visibility: 'public' | 'private';
   hostId: string;
+  hostName: string;
   createdAt: number;
   participantCount?: number;
   state?: 'open' | 'closed' | 'reopened';

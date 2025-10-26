@@ -14,7 +14,7 @@ export function SessionItem({ session }: SessionItemProps) {
     <Card className="flex flex-col hover:shadow-lg transition-shadow">
       <CardHeader>
         <CardTitle className="truncate">{session.name}</CardTitle>
-        <CardDescription>Hosted by {session.hostId.split('_')[0]}</CardDescription>
+        <CardDescription>Hosted by {session.hostName || `User...${session.hostId.slice(-4)}`}</CardDescription>
       </CardHeader>
       <CardContent className="flex-grow space-y-2">
          <div className="flex items-center text-sm text-muted-foreground">
