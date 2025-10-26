@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useState } from 'react';
 import {
   Card,
   CardContent,
@@ -9,7 +9,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Volume2, Bookmark, Edit, Trash2 } from 'lucide-react';
+import { Bookmark, Edit, Trash2 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import type { PersonalVocabulary, VocabularyCard as CardType } from '@/lib/types';
 import { formatDistanceToNow } from 'date-fns';
@@ -38,7 +38,6 @@ type VocabularyCardProps = {
 };
 
 export function VocabularyCard({ card, sessionState = 'open' }: VocabularyCardProps) {
-  const audioRef = useRef<HTMLAudioElement>(null);
   const { toast } = useToast();
   const { user } = useUser();
   const firestore = useFirestore();
@@ -46,13 +45,6 @@ export function VocabularyCard({ card, sessionState = 'open' }: VocabularyCardPr
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const isCreator = user?.uid === card.creatorId;
 
-
-  const playAudio = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (audioRef.current) {
-      audioRef.current.play().catch(e => console.error("Audio playback failed:", e));
-    }
-  };
   
   const addToBank = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -105,15 +97,6 @@ export function VocabularyCard({ card, sessionState = 'open' }: VocabularyCardPr
                   <span>{card.wordOrPhrase}</span>
                   {card.translation && <span className="text-xl text-primary font-medium">{card.translation}</span>}
                 </CardTitle>
-                {card.audioPronunciationUrl && (
-                    <>
-                        <Button variant="ghost" size="icon" onClick={playAudio}>
-                            <Volume2 />
-                            <span className="sr-only">Play pronunciation</span>
-                        </Button>
-                        <audio ref={audioRef} src={card.audioPronunciationUrl} className="hidden" />
-                    </>
-                )}
             </div>
             <div className="flex items-center gap-2 text-muted-foreground pt-1">
               {card.pronunciationIpa && <span>/{card.pronunciationIpa}/</span>}

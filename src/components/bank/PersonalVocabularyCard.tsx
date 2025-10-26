@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState, useRef } from 'react';
+import { useMemo, useState } from 'react';
 import { doc, deleteDoc } from 'firebase/firestore';
 import { useDoc, useFirestore, useUser, updateDocumentNonBlocking } from '@/firebase';
 import type { PersonalVocabulary, VocabularyCard } from '@/lib/types';
@@ -24,7 +24,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '../ui/skeleton';
-import { Volume2, MoreVertical, Trash2, CheckCircle, Circle, Tag } from 'lucide-react';
+import { MoreVertical, Trash2, CheckCircle, Circle, Tag } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { VocabularyCardDetailsDialog } from '../session/VocabularyCardDetailsDialog';
@@ -37,7 +37,6 @@ export function PersonalVocabularyCard({ personalVocab }: PersonalVocabularyCard
   const firestore = useFirestore();
   const { user } = useUser();
   const { toast } = useToast();
-  const audioRef = useRef<HTMLAudioElement>(null);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   
   const cardRef = useMemo(() => {
@@ -66,14 +65,6 @@ export function PersonalVocabularyCard({ personalVocab }: PersonalVocabularyCard
     toast({ title: 'Removed', description: 'Card removed from your bank.'});
   };
 
-  const playAudio = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (audioRef.current) {
-      audioRef.current.play().catch(e => console.error("Audio playback failed:", e));
-    }
-  };
-
-
   if (isLoading) {
     return <Skeleton className="h-56 w-full rounded-lg" />;
   }
@@ -100,9 +91,6 @@ export function PersonalVocabularyCard({ personalVocab }: PersonalVocabularyCard
     <>
       <div onClick={() => setIsDetailsOpen(true)} className="cursor-pointer h-full">
         <Card className={cn("flex flex-col h-full", personalVocab.mastered && "bg-secondary")}>
-          {card.audioPronunciationUrl && (
-            <audio ref={audioRef} src={card.audioPronunciationUrl} className="hidden" />
-          )}
           <CardHeader>
             <div className="flex justify-between items-start gap-4">
                 <CardTitle className="flex items-baseline gap-3">
@@ -110,12 +98,6 @@ export function PersonalVocabularyCard({ personalVocab }: PersonalVocabularyCard
                   {card.translation && <span className="text-xl text-primary font-medium">{card.translation}</span>}
                 </CardTitle>
                 <div className='flex items-center'>
-                  {card.audioPronunciationUrl && (
-                      <Button variant="ghost" size="icon" onClick={playAudio}>
-                          <Volume2 />
-                          <span className="sr-only">Play pronunciation</span>
-                      </Button>
-                  )}
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button variant="ghost" size="icon" onClick={(e) => e.stopPropagation()}><MoreVertical /></Button>

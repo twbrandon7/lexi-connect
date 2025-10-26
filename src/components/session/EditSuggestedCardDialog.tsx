@@ -28,7 +28,6 @@ import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import type { AIPoweredVocabularyDiscoveryOutput, VocabularyCard } from '@/lib/types';
 import { createVocabularyCard } from '@/ai/flows/create-vocabulary-card';
-import { generateAudioAction } from '@/app/actions/generateAudioAction';
 import { Textarea } from '../ui/textarea';
 
 const formSchema = z.object({
@@ -79,17 +78,7 @@ export function EditSuggestedCardDialog({ isOpen, setIsOpen, suggestion, session
         exampleSentence: values.exampleSentence,
       });
 
-      const audio = await generateAudioAction(values.wordOrPhrase);
-
-      if (audio.error) {
-        toast({
-          variant: 'destructive',
-          title: 'Audio Failed',
-          description: `Could not generate audio for "${values.wordOrPhrase}". The card will be added without it.`,
-        });
-      }
-
-      const finalCardData: Omit<VocabularyCard, 'audioPronunciationUrl'> & { audioPronunciationUrl?: string } = {
+      const finalCardData: VocabularyCard = {
         id: newCardRef.id,
         wordOrPhrase: values.wordOrPhrase,
         primaryMeaning: cardDetails.primaryMeaning,
@@ -104,10 +93,6 @@ export function EditSuggestedCardDialog({ isOpen, setIsOpen, suggestion, session
         createdAt: Date.now(),
         sessionId: sessionId,
       };
-
-      if (audio.media) {
-        finalCardData.audioPronunciationUrl = audio.media;
-      }
 
       setDocumentNonBlocking(newCardRef, finalCardData, {});
 

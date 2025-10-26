@@ -5,7 +5,6 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { createVocabularyCard } from '@/ai/flows/create-vocabulary-card';
-import { generateAudioAction } from '@/app/actions/generateAudioAction';
 import { Loader2, PlusCircle, Pencil } from 'lucide-react';
 import { collection, doc } from 'firebase/firestore';
 import { useUser, useFirestore, setDocumentNonBlocking } from '@/firebase';
@@ -50,17 +49,7 @@ export function SuggestedCard({ suggestion, sessionId, sessionLanguage }: Sugges
         exampleSentence: exampleSentence,
       });
 
-      // Then, generate the audio separately
-      const audio = await generateAudioAction(wordOrPhrase);
-      if (audio.error) {
-        toast({
-          variant: 'destructive',
-          title: 'Audio Failed',
-          description: `Could not generate audio for "${wordOrPhrase}". The card was added without it.`,
-        });
-      }
-
-      const newCard: Omit<VocabularyCard, 'audioPronunciationUrl'> & { audioPronunciationUrl?: string } = {
+      const newCard: VocabularyCard = {
         id: newCardRef.id,
         wordOrPhrase: wordOrPhrase,
         primaryMeaning: details.primaryMeaning,
@@ -75,10 +64,6 @@ export function SuggestedCard({ suggestion, sessionId, sessionLanguage }: Sugges
         createdAt: Date.now(),
         sessionId: sessionId,
       };
-
-      if (audio.media) {
-        newCard.audioPronunciationUrl = audio.media;
-      }
 
       setDocumentNonBlocking(newCardRef, newCard, {});
 
