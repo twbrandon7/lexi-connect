@@ -4,10 +4,10 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { suggestVocabularyCards } from '@/ai/flows/suggest-vocabulary-cards';
+import { createVocabularyCard } from '@/ai/flows/create-vocabulary-card';
 import { generateAudioPronunciation } from '@/ai/flows/generate-audio-pronunciation';
 import { Loader2, PlusCircle } from 'lucide-react';
-import { collection, doc } from 'firebase/firestore';
+import { collection } from 'firebase/firestore';
 import { useUser, useFirestore, addDocumentNonBlocking } from '@/firebase';
 import type { VocabularyCard } from '@/lib/types';
 
@@ -43,43 +43,36 @@ export function SuggestedCard({ word, sessionId, sessionLanguage }: SuggestedCar
 
     setIsAdding(true);
     try {
-      // 1. Get definition
-      const suggestionResult = await suggestVocabularyCards({
-        query: word,
-        motherLanguage: sessionLanguage,
-      });
+      // 1. Get all card details from AI
+      const [cardDetailsResult, audioResult] = await Promise.all([
+        createVocabularyCard({
+          wordOrPhrase: word,
+          motherLanguage: sessionLanguage,
+        }),
+        generateAudioPronunciation(word)
+      ]);
 
-      const cardData = suggestionResult.cardSuggestions.find(c => c.word.toLowerCase() === word.toLowerCase());
-      if (!cardData) {
-        throw new Error(`Could not find a definition for "${word}".`);
+      if (!cardDetailsResult) {
+        throw new Error(`Could not generate card details for "${word}".`);
       }
 
-      // 2. Get audio
-      const audioResult = await generateAudioPronunciation(word);
-      const audioUrl = audioResult.media;
-
-      // 3. Create card object
+      // 2. Create card object
       const vocabularyCardsCollection = collection(firestore, `sessions/${sessionId}/vocabularyCards`);
       
       const newCard: Omit<VocabularyCard, 'id'> = {
-        wordOrPhrase: cardData.word,
-        primaryMeaning: cardData.definition,
-        audioPronunciationUrl: audioUrl,
+        ...cardDetailsResult,
+        audioPronunciationUrl: audioResult.media,
         creatorId: user.uid,
         createdAt: Date.now(),
         sessionId: sessionId,
-        partOfSpeech: '',
-        pronunciationIpa: '',
-        exampleSentence: '',
-        translation: '',
       };
 
-      // 4. Save to Firebase
+      // 3. Save to Firebase
       await addDocumentNonBlocking(vocabularyCardsCollection, newCard);
 
       toast({
         title: 'Card Added!',
-        description: `"${cardData.word}" has been added to the session.`,
+        description: `"${newCard.wordOrPhrase}" has been added to the session.`,
       });
     } catch (error) {
       console.error('Failed to add card:', error);
