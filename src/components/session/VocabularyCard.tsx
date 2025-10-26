@@ -3,8 +3,6 @@
 import { useRef, useState } from 'react';
 import {
   Card,
-  CardContent,
-  CardDescription,
   CardFooter,
   CardHeader,
   CardTitle,
@@ -19,6 +17,7 @@ import { useUser, useFirestore, setDocumentNonBlocking } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import { EditVocabularyCardDialog } from './EditVocabularyCardDialog';
 import { Badge } from '../ui/badge';
+import { VocabularyCardDetailsDialog } from './VocabularyCardDetailsDialog';
 
 type VocabularyCardProps = {
   card: CardType;
@@ -28,17 +27,21 @@ type VocabularyCardProps = {
 export function VocabularyCard({ card, sessionState = 'open' }: VocabularyCardProps) {
   const audioRef = useRef<HTMLAudioElement>(null);
   const { toast } = useToast();
-  const { user } = useFirestore();
+  const { user } = useUser();
   const firestore = useFirestore();
   const [isEditOpen, setIsEditOpen] = useState(false);
+  const [isDetailsOpen, setIsDetailsOpen] = useState(false);
 
-  const playAudio = () => {
+
+  const playAudio = (e: React.MouseEvent) => {
+    e.stopPropagation();
     if (audioRef.current) {
       audioRef.current.play().catch(e => console.error("Audio playback failed:", e));
     }
   };
   
-  const addToBank = () => {
+  const addToBank = (e: React.MouseEvent) => {
+    e.stopPropagation();
     if (!user || !firestore) {
       toast({ variant: 'destructive', title: 'Error', description: 'You must be logged in to save cards.' });
       return;
@@ -65,67 +68,75 @@ export function VocabularyCard({ card, sessionState = 'open' }: VocabularyCardPr
     }
   };
 
+  const openEditDialog = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setIsEditOpen(true);
+  }
+
   return (
     <>
-      <Card className="flex flex-col">
-        <CardHeader>
-          <div className="flex justify-between items-start gap-4">
-              <CardTitle className="flex items-baseline gap-3">
-                <span>{card.wordOrPhrase}</span>
-                {card.translation && <span className="text-xl text-primary font-medium">{card.translation}</span>}
-              </CardTitle>
-              {card.audioPronunciationUrl && (
-                  <>
-                      <Button variant="ghost" size="icon" onClick={playAudio}>
-                          <Volume2 />
-                          <span className="sr-only">Play pronunciation</span>
-                      </Button>
-                      <audio ref={audioRef} src={card.audioPronunciationUrl} className="hidden" />
-                  </>
+      <div onClick={() => setIsDetailsOpen(true)} className="cursor-pointer">
+        <Card className="flex flex-col h-full">
+          <CardHeader>
+            <div className="flex justify-between items-start gap-4">
+                <CardTitle className="flex items-baseline gap-3">
+                  <span>{card.wordOrPhrase}</span>
+                  {card.translation && <span className="text-xl text-primary font-medium">{card.translation}</span>}
+                </CardTitle>
+                {card.audioPronunciationUrl && (
+                    <>
+                        <Button variant="ghost" size="icon" onClick={playAudio}>
+                            <Volume2 />
+                            <span className="sr-only">Play pronunciation</span>
+                        </Button>
+                        <audio ref={audioRef} src={card.audioPronunciationUrl} className="hidden" />
+                    </>
+                )}
+            </div>
+            <div className="flex items-center gap-2 text-muted-foreground pt-1">
+              {card.pronunciationIpa && <span>/{card.pronunciationIpa}/</span>}
+              {card.partOfSpeech && <Badge variant="secondary">{card.partOfSpeech}</Badge>}
+            </div>
+          </CardHeader>
+          
+          <div className="flex-grow"></div>
+
+          <CardFooter className="flex justify-between items-center text-sm text-muted-foreground">
+            <div className="flex items-center gap-2">
+                <Avatar className="h-6 w-6">
+                    <AvatarImage src={`https://api.dicebear.com/8.x/bottts-neutral/svg?seed=${card.creatorId}`} />
+                    <AvatarFallback>{card.creatorId.substring(0, 1)}</AvatarFallback>
+                </Avatar>
+                <div className='flex flex-col'>
+                  <span className='font-medium'>{card.creatorId.substring(0, 6)}</span>
+                  <span className='text-xs'>{formatDistanceToNow(new Date(card.createdAt), { addSuffix: true })}</span>
+                </div>
+            </div>
+            <div className="flex gap-2">
+              {sessionState === 'open' && (
+                <Button variant="outline" size="sm" onClick={openEditDialog}>
+                  <Edit className="mr-2 h-4 w-4" />
+                  Edit
+                </Button>
               )}
-          </div>
-          <div className="flex items-center gap-2 text-muted-foreground">
-            {card.pronunciationIpa && <span>/{card.pronunciationIpa}/</span>}
-            {card.partOfSpeech && <Badge variant="secondary">{card.partOfSpeech}</Badge>}
-          </div>
-          <CardDescription>{card.primaryMeaning}</CardDescription>
-        </CardHeader>
-        <CardContent className="flex-grow space-y-4">
-          {card.exampleSentence && (
-              <blockquote className="border-l-2 pl-4 italic text-muted-foreground">
-                  <p>"{card.exampleSentence}"</p>
-                  {card.exampleSentenceTranslation && <p className="mt-2 text-sm">"{card.exampleSentenceTranslation}"</p>}
-              </blockquote>
-          )}
-        </CardContent>
-        <CardFooter className="flex justify-between items-center text-sm text-muted-foreground">
-          <div className="flex items-center gap-2">
-              <Avatar className="h-6 w-6">
-                  <AvatarImage src={`https://api.dicebear.com/8.x/bottts-neutral/svg?seed=${card.creatorId}`} />
-                  <AvatarFallback>{card.creatorId.substring(0, 1)}</AvatarFallback>
-              </Avatar>
-              <div className='flex flex-col'>
-                <span className='font-medium'>{card.creatorId.substring(0, 6)}</span>
-                <span className='text-xs'>{formatDistanceToNow(new Date(card.createdAt), { addSuffix: true })}</span>
-              </div>
-          </div>
-          <div className="flex gap-2">
-            {sessionState === 'open' && (
-              <Button variant="outline" size="sm" onClick={() => setIsEditOpen(true)}>
-                <Edit className="mr-2 h-4 w-4" />
-                Edit
+              <Button variant="outline" size="sm" onClick={addToBank}>
+                <Bookmark className="mr-2 h-4 w-4" />
+                Save
               </Button>
-            )}
-            <Button variant="outline" size="sm" onClick={addToBank}>
-              <Bookmark className="mr-2 h-4 w-4" />
-              Save
-            </Button>
-          </div>
-        </CardFooter>
-      </Card>
+            </div>
+          </CardFooter>
+        </Card>
+      </div>
+
+      {/* Dialogs */}
       <EditVocabularyCardDialog 
         isOpen={isEditOpen} 
         setIsOpen={setIsEditOpen}
+        card={card}
+      />
+       <VocabularyCardDetailsDialog
+        isOpen={isDetailsOpen}
+        setIsOpen={setIsDetailsOpen}
         card={card}
       />
     </>
