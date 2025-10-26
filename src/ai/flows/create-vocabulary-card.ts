@@ -35,7 +35,7 @@ export async function createVocabularyCard(input: CreateVocabularyCardInput): Pr
 
 const prompt = ai.definePrompt({
   name: 'createVocabularyCardPrompt',
-  model: "googleai/gemini-1.5-flash",
+  model: "googleai/gemini-1.5-pro-latest",
   input: { schema: CreateVocabularyCardInputSchema },
   output: { schema: CreateVocabularyCardOutputSchema },
   prompt: `You are an expert linguist and English teacher. Your task is to create a complete and accurate vocabulary card for the given English word or phrase.
