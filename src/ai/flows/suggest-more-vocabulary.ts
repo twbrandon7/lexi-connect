@@ -13,7 +13,7 @@ import { z } from 'genkit';
 
 const SuggestMoreVocabularyInputSchema = z.object({
   query: z.string().describe('The original user query to suggest vocabulary cards for.'),
-  motherLanguage: z.string().describe('The user’s mother language.'),
+  motherLanguage: z.string().describe("The user's mother language."),
   existingWords: z.array(z.string()).describe('A list of words that have already been suggested.'),
 });
 export type SuggestMoreVocabularyInput = z.infer<typeof SuggestMoreVocabularyInputSchema>;

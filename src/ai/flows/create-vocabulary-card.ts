@@ -13,7 +13,7 @@ import { z } from 'genkit';
 
 const CreateVocabularyCardInputSchema = z.object({
   wordOrPhrase: z.string().describe('The English word or phrase to create a card for.'),
-  motherLanguage: z.string().describe('The user’s mother language for translation.'),
+  motherLanguage: z.string().describe("The user's mother language for translation."),
   exampleSentence: z.string().optional().describe('An optional example sentence to provide context.'),
 });
 export type CreateVocabularyCardInput = z.infer<typeof CreateVocabularyCardInputSchema>;

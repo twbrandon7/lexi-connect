@@ -16,7 +16,7 @@ import {z} from 'genkit';
 
 const AIPoweredVocabularyDiscoveryInputSchema = z.object({
   query: z.string().describe('The user query in their native language.'),
-  motherLanguage: z.string().optional().describe('The user’s mother language. Defaults to English if not provided.'),
+  motherLanguage: z.string().optional().describe("The user's mother language. Defaults to English if not provided."),
   sessionId: z.string().optional().describe('The current session ID'),
 });
 export type AIPoweredVocabularyDiscoveryInput = z.infer<typeof AIPoweredVocabularyDiscoveryInputSchema>;
@@ -27,10 +27,10 @@ const AIPoweredVocabularyDiscoveryOutputSchema = z.object({
     z.object({
       wordOrPhrase: z.string().describe('The suggested English word or phrase.'),
       partOfSpeech: z.string().describe('The grammatical part of speech (e.g., noun, verb, adjective).'),
-      translation: z.string().describe('The translation of the word/phrase into the user\'s mother language.'),
-      exampleSentence: z.string().describe('The full example sentence from the AI\'s answer where this word/phrase appeared.'),
+      translation: z.string().describe("The translation of the word/phrase into the user's mother language."),
+      exampleSentence: z.string().describe("The full example sentence from the AI's answer where this word/phrase appeared."),
     })
-  ).describe('A list of suggested vocabulary cards derived directly from the AI\'s answer sentences.'),
+  ).describe("A list of suggested vocabulary cards derived directly from the AI's answer sentences."),
 });
 export type AIPoweredVocabularyDiscoveryOutput = z.infer<typeof AIPoweredVocabularyDiscoveryOutputSchema>;
 
@@ -65,7 +65,11 @@ Mother Language: "Traditional Chinese (Taiwan)"
 
 Your output should be in the format:
 {
-  "answer": "Here are a few ways to say that:\n- I had breakfast late today.\n- I ate breakfast really late today.\n- I had a late breakfast today.\n- (More casual) Breakfast was super late for me today.",
+  "answer": "Here are a few ways to say that:
+- I had breakfast late today.
+- I ate breakfast really late today.
+- I had a late breakfast today.
+- (More casual) Breakfast was super late for me today.",
   "suggestedVocabularyCards": [
     {
       "wordOrPhrase": "breakfast",

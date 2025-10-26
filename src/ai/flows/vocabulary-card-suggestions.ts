@@ -13,7 +13,7 @@ import {z} from 'genkit';
 
 const SuggestVocabularyCardsWithExistingCheckInputSchema = z.object({
   query: z.string().describe('The user query to suggest vocabulary cards for.'),
-  motherLanguage: z.string().describe('The user\u2019s mother language.'),
+  motherLanguage: z.string().describe("The user's mother language."),
 });
 export type SuggestVocabularyCardsWithExistingCheckInput = z.infer<typeof SuggestVocabularyCardsWithExistingCheckInputSchema>;
 
@@ -42,10 +42,10 @@ const prompt = ai.definePrompt({
   model: "googleai/gemini-1.5-pro-latest",
   input: {schema: SuggestVocabularyCardsWithExistingCheckInputSchema},
   output: {schema: SuggestVocabularyCardsWithExistingCheckOutputSchema},
-  prompt: `You are a helpful AI assistant that suggests vocabulary cards based on a user\'s query, and identifies if similar cards already exist. 
+  prompt: `You are a helpful AI assistant that suggests vocabulary cards based on a user's query, and identifies if similar cards already exist. 
   The user will provide a query and their mother language.
   You should suggest vocabulary cards with English words and definitions that are relevant to the query.
-  Make sure each definition is context-specific and based on the user\'s query.
+  Make sure each definition is context-specific and based on the user's query.
 
   After suggesting cards, check if an existing card already exists with a similar meaning to the suggested cards. If so, set existingCardFound to true, and return the word and definition of the existing card. If not, set existingCardFound to false, and leave existingCardDetails undefined.
 
