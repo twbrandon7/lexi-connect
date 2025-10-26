@@ -24,6 +24,8 @@ export interface VocabularyCard {
   exampleSentence: string;
   translation: string;
   creatorId: string;
+  creatorName: string;
+  creatorPhotoURL?: string;
   createdAt: number;
   sessionId: string;
   exampleSentenceTranslation?: string;

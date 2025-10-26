@@ -95,6 +95,8 @@ export function EditSuggestedCardDialog({ isOpen, setIsOpen, suggestion, session
         exampleSentenceTranslation: cardDetails?.exampleSentenceTranslation || '',
         audioPronunciationUrl: audio.media,
         creatorId: user.uid,
+        creatorName: user.displayName || 'Anonymous',
+        creatorPhotoURL: user.photoURL || '',
         createdAt: Date.now(),
         sessionId: sessionId,
       };

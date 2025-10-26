@@ -129,18 +129,18 @@ export function VocabularyCard({ card, sessionState = 'open' }: VocabularyCardPr
             )}
           </CardContent>
 
-          <CardFooter className="flex justify-between items-center text-sm text-muted-foreground">
-            <div className="flex items-center gap-2">
+          <CardFooter className="flex flex-col items-start gap-4">
+             <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Avatar className="h-6 w-6">
-                    <AvatarImage src={`https://api.dicebear.com/8.x/bottts-neutral/svg?seed=${card.creatorId}`} />
-                    <AvatarFallback>{card.creatorId.substring(0, 1)}</AvatarFallback>
+                    <AvatarImage src={card.creatorPhotoURL || `https://api.dicebear.com/8.x/bottts-neutral/svg?seed=${card.creatorId}`} />
+                    <AvatarFallback>{card.creatorName?.[0] || 'G'}</AvatarFallback>
                 </Avatar>
                 <div className='flex flex-col'>
-                  <span className='font-medium'>{card.creatorId.substring(0, 6)}</span>
+                  <span className='font-medium'>{card.creatorName || `Guest-${card.creatorId.substring(0,4)}`}</span>
                   <span className='text-xs'>{formatDistanceToNow(new Date(card.createdAt), { addSuffix: true })}</span>
                 </div>
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-2 w-full">
               {isCreator && sessionState === 'open' && (
                  <AlertDialog>
                   <AlertDialogTrigger asChild>
@@ -169,7 +169,7 @@ export function VocabularyCard({ card, sessionState = 'open' }: VocabularyCardPr
                   Edit
                 </Button>
               )}
-              <Button variant="outline" size="sm" onClick={addToBank}>
+              <Button variant="outline" size="sm" onClick={addToBank} className="ml-auto">
                 <Bookmark className="mr-2 h-4 w-4" />
                 Save
               </Button>

@@ -59,6 +59,15 @@
           "type": "string",
           "description": "Reference to the User who created the card. (Relationship: User 1:N VocabularyCard)"
         },
+        "creatorName": {
+          "type": "string",
+          "description": "Display name of the user who created the card."
+        },
+        "creatorPhotoURL": {
+          "type": "string",
+          "description": "Photo URL of the user who created the card.",
+          "format": "uri"
+        },
         "wordOrPhrase": {
           "type": "string",
           "description": "The word or phrase on the card (English)."
@@ -104,6 +113,7 @@
         "id",
         "sessionId",
         "creatorId",
+        "creatorName",
         "wordOrPhrase",
         "primaryMeaning",
         "partOfSpeech",

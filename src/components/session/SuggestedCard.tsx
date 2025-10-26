@@ -62,6 +62,8 @@ export function SuggestedCard({ suggestion, sessionId, sessionLanguage }: Sugges
         exampleSentenceTranslation: details.exampleSentenceTranslation,
         audioPronunciationUrl: audio.media,
         creatorId: user.uid,
+        creatorName: user.displayName || 'Anonymous',
+        creatorPhotoURL: user.photoURL || '',
         createdAt: Date.now(),
         sessionId: sessionId,
       };
