@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { createVocabularyCard } from '@/ai/flows/create-vocabulary-card';
-import { generateAudioPronunciation } from '@/ai/flows/generate-audio-pronunciation';
+import { generateAudioAction } from '@/app/actions/generateAudioAction';
 import { Loader2, PlusCircle, Pencil } from 'lucide-react';
 import { collection, doc } from 'firebase/firestore';
 import { useUser, useFirestore, setDocumentNonBlocking } from '@/firebase';
@@ -49,9 +49,13 @@ export function SuggestedCard({ suggestion, sessionId, sessionLanguage }: Sugges
             motherLanguage: sessionLanguage,
             exampleSentence: exampleSentence,
         }),
-        generateAudioPronunciation(wordOrPhrase)
+        generateAudioAction(wordOrPhrase)
       ]);
       
+      if (audio.error) {
+        throw new Error(audio.error);
+      }
+
       const newCard: VocabularyCard = {
         id: newCardRef.id,
         wordOrPhrase: wordOrPhrase,

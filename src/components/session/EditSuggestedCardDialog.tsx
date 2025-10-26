@@ -28,7 +28,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import type { AIPoweredVocabularyDiscoveryOutput, VocabularyCard } from '@/lib/types';
 import { createVocabularyCard } from '@/ai/flows/create-vocabulary-card';
-import { generateAudioPronunciation } from '@/ai/flows/generate-audio-pronunciation';
+import { generateAudioAction } from '@/app/actions/generateAudioAction';
 import { Textarea } from '../ui/textarea';
 
 const formSchema = z.object({
@@ -82,7 +82,11 @@ export function EditSuggestedCardDialog({ isOpen, setIsOpen, suggestion, session
         exampleSentence: values.exampleSentence, // Pass context sentence
       });
 
-      const audio = await generateAudioPronunciation(values.wordOrPhrase);
+      const audio = await generateAudioAction(values.wordOrPhrase);
+
+      if (audio.error) {
+        throw new Error(audio.error);
+      }
 
       const finalCardData: VocabularyCard = {
         id: newCardRef.id,
