@@ -67,6 +67,32 @@ export function AIQuery({ sessionId, sessionLanguage }: AIQueryProps) {
       setIsLoading(false);
     }
   }
+  
+  const renderAnswer = (answer: string) => {
+    const lines = answer.split('\n');
+    const listItems: string[] = [];
+    const otherContent: string[] = [];
+
+    lines.forEach(line => {
+      if (line.trim().startsWith('- ') || line.trim().startsWith('* ')) {
+        listItems.push(line.trim().substring(2));
+      } else {
+        otherContent.push(line);
+      }
+    });
+
+    return (
+      <div>
+        {otherContent.length > 0 && <p className="text-muted-foreground whitespace-pre-wrap">{otherContent.join('\n')}</p>}
+        {listItems.length > 0 && (
+          <ul className="list-disc list-inside text-muted-foreground space-y-2 mt-2">
+            {listItems.map((item, index) => <li key={index}>{item}</li>)}
+          </ul>
+        )}
+      </div>
+    );
+  };
+
 
   return (
     <div className="space-y-6">
@@ -127,7 +153,7 @@ export function AIQuery({ sessionId, sessionLanguage }: AIQueryProps) {
             {aiResponse.answer && (
                 <div>
                     <h3 className="text-lg font-semibold mb-2">Answer</h3>
-                    <p className="text-muted-foreground whitespace-pre-wrap">{aiResponse.answer}</p>
+                    {renderAnswer(aiResponse.answer)}
                 </div>
             )}
             

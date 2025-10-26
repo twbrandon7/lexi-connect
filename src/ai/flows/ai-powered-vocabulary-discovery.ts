@@ -22,7 +22,7 @@ const AIPoweredVocabularyDiscoveryInputSchema = z.object({
 export type AIPoweredVocabularyDiscoveryInput = z.infer<typeof AIPoweredVocabularyDiscoveryInputSchema>;
 
 const AIPoweredVocabularyDiscoveryOutputSchema = z.object({
-  answer: z.string().describe('A concise answer to the user query, providing multiple natural-sounding alternative sentences in English.'),
+  answer: z.string().describe('A concise answer to the user query, providing multiple natural-sounding alternative sentences in English. Use markdown for bullet points.'),
   suggestedVocabularyCards: z.array(
     z.object({
       wordOrPhrase: z.string().describe('The suggested English word or phrase.'),
@@ -47,13 +47,16 @@ const prompt = ai.definePrompt({
 The user's query is: "{{query}}"
 
 Your task is to:
-1.  First, provide a concise and friendly answer. Give multiple natural-sounding sentences in English that express the user's intent. Start with the most direct translation, then provide a few alternatives (e.g., more casual, more formal).
+1.  First, provide a concise and friendly answer. Give multiple natural-sounding sentences in English that express the user's intent.
+    *   Start with the most direct translation.
+    *   Provide a few alternatives (e.g., more casual, more formal).
+    *   **Format this list of sentences using markdown bullet points (e.g., using a '-' or '*' at the start of the line).**
 2.  After providing the answer, identify key vocabulary words or phrases from the sentences you just generated. For each word/phrase, create a vocabulary suggestion.
 3.  For each suggestion, you MUST provide:
     *   **wordOrPhrase**: The English word or phrase.
     *   **partOfSpeech**: The grammatical part of speech.
     *   **translation**: The translation of the word/phrase into the user's mother language ({{{motherLanguage}}}).
-    *   **exampleSentence**: The exact sentence from your answer where the word/phrase was used.
+    *   **exampleSentence**: The exact sentence from your answer where the word/phrase was used (excluding the bullet point marker).
 
 Example Interaction:
 User Query: "How to express 我今天很晚吃早餐?"
@@ -61,7 +64,7 @@ Mother Language: "Traditional Chinese (Taiwan)"
 
 Your output should be in the format:
 {
-  "answer": "Super simple one:\n“I had breakfast late today.”\n\nYou can also say:\n“I ate breakfast really late today.”\n“I had a late breakfast today.”\n\n(More casual) “Breakfast was super late for me today.”",
+  "answer": "Here are a few ways to say that:\n- I had breakfast late today.\n- I ate breakfast really late today.\n- I had a late breakfast today.\n- (More casual) Breakfast was super late for me today.",
   "suggestedVocabularyCards": [
     {
       "wordOrPhrase": "breakfast",
@@ -79,7 +82,7 @@ Your output should be in the format:
       "wordOrPhrase": "casual",
       "partOfSpeech": "adjective",
       "translation": "休閒的",
-      "exampleSentence": "(More casual) “Breakfast was super late for me today.”"
+      "exampleSentence": "(More casual) Breakfast was super late for me today."
     }
   ]
 }
