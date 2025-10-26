@@ -36,6 +36,7 @@ export interface PersonalVocabulary {
   id: string;
   userId: string;
   vocabularyCardId: string;
+  sessionId: string;
   mastered: boolean;
   difficultyLevel?: 'beginner' | 'intermediate' | 'advanced';
   savedAt: number;

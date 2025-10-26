@@ -39,15 +39,8 @@ export function PersonalVocabularyCard({ personalVocab }: PersonalVocabularyCard
   const audioRef = useRef<HTMLAudioElement>(null);
   
   const cardRef = useMemo(() => {
-    if (!firestore || !personalVocab.vocabularyCardId) return null;
-    // This assumes all cards are in a single top-level collection.
-    // This will break if cards are in a sub-collection.
-    // A better approach would be to store the full path to the card.
-    // For now, this is a placeholder. Let's find a session ID.
-    // This is a design flaw in the data model. We'll assume the sessionID is part of the card for now.
-    // Let's assume we can get it. This is a bit of a hack.
-    const [sessionId] = personalVocab.id.split('_'); // This is not reliable.
-    return doc(firestore, `sessions/${(personalVocab as any).sessionId || sessionId}/vocabularyCards/${personalVocab.vocabularyCardId}`);
+    if (!firestore || !personalVocab.vocabularyCardId || !personalVocab.sessionId) return null;
+    return doc(firestore, `sessions/${personalVocab.sessionId}/vocabularyCards/${personalVocab.vocabularyCardId}`);
   }, [firestore, personalVocab]);
 
   const { data: card, isLoading } = useDoc<VocabularyCard>(cardRef);

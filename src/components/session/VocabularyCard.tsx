@@ -68,6 +68,7 @@ export function VocabularyCard({ card, sessionState = 'open' }: VocabularyCardPr
         id: card.id,
         userId: user.uid,
         vocabularyCardId: card.id,
+        sessionId: card.sessionId,
         mastered: false,
         savedAt: Date.now()
       };

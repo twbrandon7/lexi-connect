@@ -43,6 +43,9 @@ export function Header() {
         </div>
         <div className="flex flex-1 items-center justify-between space-x-2 md:justify-end">
           <nav className="flex items-center gap-4">
+            <Link href="/my-sessions">
+              <Button variant="ghost">My Sessions</Button>
+            </Link>
             <Link href="/my-bank">
               <Button variant="ghost">My Bank</Button>
             </Link>
