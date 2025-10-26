@@ -37,6 +37,7 @@ const formSchema = z.object({
   pronunciationIpa: z.string(),
   exampleSentence: z.string(),
   translation: z.string(),
+  exampleSentenceTranslation: z.string(),
 });
 
 type EditVocabularyCardDialogProps = {
@@ -45,7 +46,7 @@ type EditVocabularyCardDialogProps = {
   card: VocabularyCard;
 };
 
-type RefineField = 'primaryMeaning' | 'exampleSentence';
+type RefineField = 'primaryMeaning' | 'exampleSentence' | 'exampleSentenceTranslation';
 
 export function EditVocabularyCardDialog({ isOpen, setIsOpen, card }: EditVocabularyCardDialogProps) {
   const firestore = useFirestore();
@@ -62,6 +63,7 @@ export function EditVocabularyCardDialog({ isOpen, setIsOpen, card }: EditVocabu
       pronunciationIpa: card.pronunciationIpa || '',
       exampleSentence: card.exampleSentence || '',
       translation: card.translation || '',
+      exampleSentenceTranslation: card.exampleSentenceTranslation || '',
     },
   });
 
@@ -155,6 +157,24 @@ export function EditVocabularyCardDialog({ isOpen, setIsOpen, card }: EditVocabu
                        <Textarea {...field} />
                        <Button type="button" size="icon" variant="outline" onClick={() => handleRefineField('exampleSentence', 'Create a better, more illustrative example sentence.')} disabled={refiningField === 'exampleSentence'}>
                          {refiningField === 'exampleSentence' ? <Loader2 className="animate-spin" /> : <Wand2 />}
+                       </Button>
+                    </div>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="exampleSentenceTranslation"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Example Sentence Translation</FormLabel>
+                  <FormControl>
+                    <div className="flex gap-2">
+                       <Textarea {...field} />
+                       <Button type="button" size="icon" variant="outline" onClick={() => handleRefineField('exampleSentenceTranslation', 'Improve this translation.')} disabled={refiningField === 'exampleSentenceTranslation'}>
+                         {refiningField === 'exampleSentenceTranslation' ? <Loader2 className="animate-spin" /> : <Wand2 />}
                        </Button>
                     </div>
                   </FormControl>
