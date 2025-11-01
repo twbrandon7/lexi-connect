@@ -69,4 +69,31 @@ body {
   body {
     @apply bg-background text-foreground;
   }
+  .prose {
+      @apply text-foreground max-w-none;
+      ul {
+        @apply list-disc list-outside;
+      }
+  }
+}
+
+@layer utilities {
+    .chat-panel-scroll {
+        scrollbar-width: thin;
+        scrollbar-color: hsl(var(--border)) hsl(var(--card));
+    }
+
+    .chat-panel-scroll::-webkit-scrollbar {
+        width: 8px;
+    }
+
+    .chat-panel-scroll::-webkit-scrollbar-track {
+        background: hsl(var(--card));
+    }
+
+    .chat-panel-scroll::-webkit-scrollbar-thumb {
+        background-color: hsl(var(--border));
+        border-radius: 10px;
+        border: 2px solid hsl(var(--card));
+    }
 }

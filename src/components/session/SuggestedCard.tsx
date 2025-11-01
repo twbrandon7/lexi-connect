@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { createVocabularyCard } from '@/ai/flows/create-vocabulary-card';
 import { Loader2, PlusCircle, Pencil } from 'lucide-react';
@@ -85,28 +85,26 @@ export function SuggestedCard({ suggestion, sessionId, sessionLanguage }: Sugges
 
   return (
     <>
-    <Card className="flex flex-col">
-      <CardHeader>
-        <CardTitle className="text-lg">{wordOrPhrase}</CardTitle>
-        <CardDescription>
-          <div className="flex items-center gap-2">
-            <Badge variant="secondary">{partOfSpeech}</Badge>
-            <span>{translation}</span>
-          </div>
+    <Card className="flex flex-col bg-background/50">
+      <CardHeader className="p-3">
+        <CardTitle className="text-base">{wordOrPhrase}</CardTitle>
+        <CardDescription className="flex items-center gap-2 text-xs">
+          <Badge variant="outline">{partOfSpeech}</Badge>
+          <span>{translation}</span>
         </CardDescription>
       </CardHeader>
-      <CardContent className="flex-grow justify-end flex flex-col">
+      <CardContent className="p-3 pt-0 flex-grow justify-end flex flex-col">
         <div className="flex gap-2 mt-auto">
-          <Button onClick={handleAddCard} disabled={isAdding} className="w-full">
+          <Button onClick={handleAddCard} disabled={isAdding} className="w-full" size="sm">
             {isAdding && !isEditOpen ? (
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
             ) : (
               <PlusCircle className="mr-2 h-4 w-4" />
             )}
-            Add to Session
+            Add
           </Button>
-          <Button variant="outline" size="icon" onClick={() => setIsEditOpen(true)} disabled={isAdding}>
-            <Pencil />
+          <Button variant="outline" size="icon-sm" onClick={() => setIsEditOpen(true)} disabled={isAdding}>
+            <Pencil className="h-4 w-4" />
             <span className="sr-only">Edit card before adding</span>
           </Button>
         </div>
@@ -122,3 +120,4 @@ export function SuggestedCard({ suggestion, sessionId, sessionLanguage }: Sugges
     </>
   );
 }
+

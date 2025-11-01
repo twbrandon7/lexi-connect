@@ -5,12 +5,12 @@ import { doc, updateDoc, arrayUnion } from 'firebase/firestore';
 import { useDoc, useFirestore, useUser, useMemoFirebase } from '@/firebase';
 import type { Session } from '@/lib/types';
 import { VocabularyList } from '@/components/session/VocabularyList';
-import { AIQuery } from '@/components/session/AIQuery';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Terminal } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { SessionManagement } from '@/components/session/SessionManagement';
+import { AIChatPanel } from '@/components/session/AIChatPanel';
 
 function SessionContent({ session, sessionId }: { session: Session; sessionId: string }) {
   const { user } = useUser();
@@ -23,46 +23,53 @@ function SessionContent({ session, sessionId }: { session: Session; sessionId: s
       // Add the current user to the participants array if they are not already in it.
       // arrayUnion is idempotent and will not add duplicates.
       updateDoc(sessionRef, {
-        participants: arrayUnion(user.uid)
+        participants: arrayUnion(user.uid),
       });
     }
   }, [user, firestore, session.id, session.state]);
 
-
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="mb-8 space-y-4">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <h1 className="text-3xl md:text-4xl font-bold font-headline truncate">{session.name}</h1>
-          <div className="flex items-center gap-4">
-             {session.state && <Badge variant={session.state === 'closed' ? 'destructive' : 'default'}>{session.state}</Badge>}
-            <Badge variant={session.visibility === 'public' ? 'default' : 'secondary'}>
-              {session.visibility}
-            </Badge>
-            {isHost && <SessionManagement session={session} />}
+    <div className="flex h-[calc(100vh-theme(spacing.14))]">
+      <div className="flex-1 overflow-y-auto p-4 md:p-8">
+        <div className="container mx-auto">
+          <div className="mb-8 space-y-4">
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <h1 className="text-3xl md:text-4xl font-bold font-headline truncate">{session.name}</h1>
+              <div className="flex items-center gap-4">
+                {session.state && <Badge variant={session.state === 'closed' ? 'destructive' : 'default'}>{session.state}</Badge>}
+                <Badge variant={session.visibility === 'public' ? 'default' : 'secondary'}>
+                  {session.visibility}
+                </Badge>
+                {isHost && <SessionManagement session={session} />}
+              </div>
+            </div>
           </div>
+          <VocabularyList sessionId={sessionId} sessionState={session.state} />
         </div>
-        {session.state !== 'closed' && <AIQuery sessionId={sessionId} sessionLanguage={session.motherLanguage} />}
       </div>
-      <VocabularyList sessionId={sessionId} sessionState={session.state} />
+      {session.state !== 'closed' && (
+        <aside className="w-full md:w-[400px] lg:w-[450px] xl:w-[500px] border-l bg-card flex flex-col">
+          <AIChatPanel sessionId={sessionId} sessionLanguage={session.motherLanguage} />
+        </aside>
+      )}
     </div>
   );
 }
 
-function SessionSkeleton() {
-    return (
-      <div className="container mx-auto px-4 py-8 space-y-6">
-        <Skeleton className="h-10 w-3/4" />
-        <Skeleton className="h-40 w-full" />
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          <Skeleton className="h-48 w-full" />
-          <Skeleton className="h-48 w-full" />
-          <Skeleton className="h-48 w-full" />
-        </div>
-      </div>
-    );
-}
 
+function SessionSkeleton() {
+  return (
+    <div className="container mx-auto px-4 py-8 space-y-6">
+      <Skeleton className="h-10 w-3/4" />
+      <Skeleton className="h-40 w-full" />
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <Skeleton className="h-48 w-full" />
+        <Skeleton className="h-48 w-full" />
+        <Skeleton className="h-48 w-full" />
+      </div>
+    </div>
+  );
+}
 
 export default function SessionPage({ params }: { params: Promise<{ sessionId: string }> }) {
   const { sessionId } = use(params);
@@ -78,14 +85,14 @@ export default function SessionPage({ params }: { params: Promise<{ sessionId: s
   if (isLoading) {
     return <SessionSkeleton />;
   }
-  
+
   if (session) {
     return <SessionContent session={session} sessionId={sessionId} />;
   }
 
   // If we finished loading, found no session, and there was no critical error, the session doesn't exist or is not accessible.
   if (!session && !error) {
-     return (
+    return (
       <div className="container mx-auto px-4 py-8">
         <Alert variant="destructive">
           <Terminal className="h-4 w-4" />
