@@ -90,7 +90,7 @@ export function VocabularyCard({ card, sessionState = 'open' }: VocabularyCardPr
   return (
     <>
       <div onClick={() => setIsDetailsOpen(true)} className="cursor-pointer">
-        <Card className="flex flex-col h-full">
+        <Card className="flex flex-col">
           <CardHeader>
             <div className="flex justify-between items-start gap-4">
                 <CardTitle className="flex items-baseline gap-3">

@@ -48,7 +48,7 @@ function SessionContent({ session, sessionId }: { session: Session; sessionId: s
         </div>
       </div>
       {session.state !== 'closed' && (
-        <aside className="w-full md:w-[400px] lg:w-[450px] xl:w-[500px] border-l bg-card flex flex-col">
+        <aside className="w-full md:w-[350px] lg:w-[400px] border-l bg-card flex flex-col">
           <AIChatPanel sessionId={sessionId} sessionLanguage={session.motherLanguage} />
         </aside>
       )}
