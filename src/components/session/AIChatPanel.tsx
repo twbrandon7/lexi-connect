@@ -9,7 +9,7 @@ import {
   aiPoweredVocabularyDiscovery,
   type AIPoweredVocabularyDiscoveryOutput,
 } from '@/ai/flows/ai-powered-vocabulary-discovery';
-import { useUser } from '@/firebase';
+import { useUser, useAuth, initiateGoogleSignIn } from '@/firebase';
 import { Form, FormControl, FormField, FormItem, FormMessage } from '@/components/ui/form';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
@@ -25,6 +25,32 @@ type AIQueryProps = {
   sessionId: string;
   sessionLanguage: string;
 };
+
+function SignInToChat() {
+  const auth = useAuth();
+  const { toast } = useToast();
+
+  const handleSignIn = async () => {
+    if (!auth) return;
+    try {
+      await initiateGoogleSignIn(auth);
+    } catch (error: any) {
+        toast({
+            variant: 'destructive',
+            title: 'Sign-In Error',
+            description: 'Could not sign in with Google. Please try again.',
+        });
+    }
+  };
+
+  return (
+    <div className="text-center text-sm text-muted-foreground p-4">
+      <p>Please sign in to use the AI assistant.</p>
+      <Button variant="link" onClick={handleSignIn} className="p-0 h-auto mt-2">Sign in with Google</Button>
+    </div>
+  );
+}
+
 
 export function AIChatPanel({ sessionId, sessionLanguage }: AIQueryProps) {
   const { user } = useUser();
@@ -45,8 +71,8 @@ export function AIChatPanel({ sessionId, sessionLanguage }: AIQueryProps) {
   }, [chatHistory]);
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    if (!user) {
-      toast({ variant: 'destructive', title: 'You are not logged in.' });
+    if (!user || user.isAnonymous) {
+      toast({ variant: 'destructive', title: 'You must be logged in to chat.' });
       return;
     }
     setIsLoading(true);
@@ -111,38 +137,42 @@ export function AIChatPanel({ sessionId, sessionLanguage }: AIQueryProps) {
       </div>
       <Separator />
       <div className="p-4">
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="relative">
-            <Textarea
-              placeholder="Ask a question..."
-              className="pr-20 resize-none"
-              disabled={isLoading}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                  e.preventDefault();
-                  form.handleSubmit(onSubmit)();
-                }
-              }}
-              {...form.control.register('query')}
-            />
-            <Button
-              type="submit"
-              size="icon"
-              className="absolute top-1/2 right-3 -translate-y-1/2"
-              disabled={isLoading}
-            >
-              {isLoading ? (
-                <Loader2 className="animate-spin" />
-              ) : (
-                <CornerDownLeft />
-              )}
-              <span className="sr-only">Send</span>
-            </Button>
-            <FormMessage className="pt-2">
-                {form.formState.errors.query?.message}
-            </FormMessage>
-          </form>
-        </Form>
+        {user && !user.isAnonymous ? (
+            <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="relative">
+                <Textarea
+                placeholder="Ask a question..."
+                className="pr-20 resize-none"
+                disabled={isLoading}
+                onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    form.handleSubmit(onSubmit)();
+                    }
+                }}
+                {...form.control.register('query')}
+                />
+                <Button
+                type="submit"
+                size="icon"
+                className="absolute top-1/2 right-3 -translate-y-1/2"
+                disabled={isLoading}
+                >
+                {isLoading ? (
+                    <Loader2 className="animate-spin" />
+                ) : (
+                    <CornerDownLeft />
+                )}
+                <span className="sr-only">Send</span>
+                </Button>
+                <FormMessage className="pt-2">
+                    {form.formState.errors.query?.message}
+                </FormMessage>
+            </form>
+            </Form>
+        ) : (
+            <SignInToChat />
+        )}
       </div>
     </>
   );
